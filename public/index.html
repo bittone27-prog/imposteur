@@ -81,13 +81,14 @@
   </div>
 
   <!-- RÉSULTAT -->
-<div id="result" class="card hidden">
-  <h2 id="resultTitle"></h2>
-  <div id="resultMessage"></div>
-  <h3>Votes :</h3>
-  <div id="resultVotes"></div>
-  <button onclick="playAgain()">Rejouer</button>
-  <button class="secondary" onclick="leaveRoom()">Quitter le groupe</button>
+  <div id="result" class="card hidden">
+    <h2 id="resultTitle"></h2>
+    <div id="resultMessage"></div>
+    <h3>Votes :</h3>
+    <div id="resultVotes"></div>
+    <button onclick="playAgain()">Rejouer</button>
+    <button class="secondary" onclick="leaveRoom()">Quitter le groupe</button>
+  </div>
 </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
@@ -97,7 +98,7 @@
   let isHost = false;
 
   function show(id) {
-    ['home','lobby','game','vote','end'].forEach(x => document.getElementById(x).classList.add('hidden'));
+    ['home','lobby','game','vote','result'].forEach(x => document.getElementById(x).classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
   }
 
@@ -135,7 +136,7 @@
     socket.emit('startGame'); 
   }
 
- function sendClue() {
+  function sendClue() {
     const input = document.getElementById('clueInput');
     const clue = input.value.trim();
     if (!clue) return;
@@ -143,16 +144,17 @@
     input.value = '';
   }
 
-function playAgain() {
-  socket.emit('startGame');
-}
+  function vote(playerId) {
+    socket.emit('vote', { votedId: playerId });
+  }
 
-function leaveRoom() {
-  socket.emit('leave');
-  show('home');
-  document.getElementById('name').value = '';
-  document.getElementById('codeInput').value = '';
-}
+  function playAgain() {
+    socket.emit('again');
+  }
+
+  function leaveRoom() {
+    location.reload();
+  }
 
   socket.on('message', (data) => {
     if (data.type === 'error') {
@@ -172,7 +174,7 @@ function leaveRoom() {
     document.getElementById('waitMsg').classList.toggle('hidden', isHost && data.players.length >= 3);
   });
 
- socket.on('gameUpdate', (data) => {
+  socket.on('gameUpdate', (data) => {
     if (data.phase === 'clues') {
       show('game');
       document.getElementById('myWord').textContent = data.word;
@@ -188,69 +190,22 @@ function leaveRoom() {
     }
   });
 
-socket.on('gameUpdate', (data) => {
-    if (data.phase === 'clues') {
-      show('game');
-      document.getElementById('myWord').textContent = data.word;
-      document.getElementById('gamePlayers').innerHTML =
-        data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? ' ← son tour' : '') + '</div>').join('');
-      document.getElementById('clues').innerHTML =
-        data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
-      document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
-    } else if (data.phase === 'voting') {
-      show('vote');
-      document.getElementById('voteList').innerHTML = 
-        data.players.map(p => '<button onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
+  socket.on('state', (data) => {
+    if (data.phase === 'result') {
+      show('result');
+      const impostor = data.players.find(p => p.isImpostor);
+      
+      document.getElementById('resultTitle').textContent = 
+        data.result.groupWins ? '✅ Les civils ont gagné !' : '❌ L\'imposteur a gagné !';
+      
+      document.getElementById('resultMessage').innerHTML = 
+        '<p><b>Imposteur :</b> ' + impostor.name + '</p>' +
+        '<p><b>Mot commun :</b> ' + data.players.find(p => !p.isImpostor).word + '</p>' +
+        '<p><b>Mot imposteur :</b> ' + impostor.word + '</p>';
+      
+      document.getElementById('resultVotes').innerHTML = 
+        '<p><b>Éliminé :</b> ' + (data.result.accusedName || 'Égalité !') + '</p>';
     }
-  });
-
-socket.on('state', (data) => {
-  if (data.phase === 'result') {
-    show('result');
-    const impostor = data.players.find(p => p.isImpostor);
-    const accused = data.players.find(p => p.id === data.result.accusedId);
-    
-    document.getElementById('resultTitle').textContent = 
-      data.result.groupWins ? '✅ Les civils ont gagné !' : '❌ L\'imposteur a gagné !';
-    
-    document.getElementById('resultMessage').innerHTML = 
-      '<p><b>Imposteur :</b> ' + impostor.name + '</p>' +
-      '<p><b>Mot commun :</b> ' + data.players[0].word + '</p>' +
-      '<p><b>Mot imposteur :</b> ' + impostor.word + '</p>';
-    
-    document.getElementById('resultVotes').innerHTML = 
-      '<p><b>Éliminé :</b> ' + (accused ? accused.name : 'Égalité !') + '</p>';
-  }
-});
-
-function playAgain() {
-  socket.emit('again');
-  show('lobby');
-}
-
-function leaveRoom() {
-  location.reload();
-}
-
-function playAgain() {
-  socket.emit('again');
-  show('lobby');
-}
-
-function leaveRoom() {
-  location.reload();
-}
-
-  function vote(playerId) {
-    socket.emit('vote', { votedId: playerId });
-  }
-
-  socket.on('gameEnd', (result) => {
-    show('end');
-    document.getElementById('result').innerHTML = 
-      '<p><b>' + result.eliminatedName + '</b> a été éliminé.</p>' +
-      '<p>Était imposteur : ' + (result.wasImpostor ? '✓ OUI' : '✗ NON') + '</p>' +
-      '<p>L\'imposteur était : <b>' + result.impostorWas + '</b></p>';
   });
 
   show('home');
