@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imposteur</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+  .container { width: 100%; max-width: 480px; }
+  h1 { text-align: center; color: #e94560; }
+  .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+  input { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; }
+  button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
+  button:hover { background: #c73650; }
+  button.secondary { background: #0f3460; }
+  .hidden { display: none; }
+  .code { font-size: 32px; letter-spacing: 6px; text-align: center; font-weight: bold; color: #f5a623; }
+  .player { padding: 8px 12px; margin: 4px 0; background: #0f3460; border-radius: 8px; }
+  .player.active { background: #e94560; }
+  .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
+  .error { color: #ff6b6b; text-align: center; min-height: 20px; }
+  .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🕵️ IMPOSTEUR</h1>
+  <div class="error" id="error"></div>
+
+  <!-- ACCUEIL -->
+  <div id="home" class="card">
+    <input id="name" placeholder="Ton pseudo" maxlength="15">
+    <button onclick="createRoom()">Créer une partie privée</button>
+    <input id="codeInput" placeholder="Code de la partie" maxlength="5" style="text-transform:uppercase">
+    <button class="secondary" onclick="joinRoom()">Rejoindre avec un code</button>
+  </div>
+
+  <!-- LOBBY -->
+  <div id="lobby" class="card hidden">
+    <div>Code de la partie :</div>
+    <div class="code" id="roomCode"></div>
+    <h3>Joueurs :</h3>
+    <div id="playersList"></div>
+    <button id="startBtn" class="hidden" onclick="startGame()">Lancer la partie</button>
+    <div id="waitMsg">En attente de l'hôte (3 joueurs minimum)...</div>
+  </div>
+
+  <!-- JEU -->
+  <div id="game" class="card hidden">
+    <div>Ton mot :</div>
+    <div class="word-box" id="myWord"></div>
+    <h3>Joueurs :</h3>
+    <div id="gamePlayers"></div>
+    <h3>Mots dits :</h3>
+    <div id="clues"></div>
+    <div id="turnArea">
+      <input id="clueInput" placeholder="Dis un mot en rapport avec ton mot">
+      <button onclick="sendClue()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let myId = null;
+
+  function show(id) {
+    ['home','lobby','game'].forEach(x => document.getElementById(x).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+  function setError(msg) {
+    document.getElementById('error').textContent = msg || '';
+    if (msg) setTimeout(() => document.getElementById('error').textContent = '', 4000);
+  }
+  function getName() {
+    const n = document.getElementById('name').value.trim();
+    if (!n) { setError('Entre un pseudo !'); return null; }
+    return n;
+  }
+  function createRoom() {
+    const name = getName(); if (!name) return;
+    socket.emit('createRoom', { name });
+  }
+  function joinRoom() {
+    const name = getName(); if (!name) return;
+    const code = document.getElementById('codeInput').value.trim().toUpperCase();
+    if (!code) { setError('Entre un code !'); return; }
+    socket.emit('joinRoom', { name, code });
+  }
+  function startGame() { socket.emit('startGame'); }
+  function sendClue() {
+    const input = document.getElementById('clueInput');
+    const clue = input.value.trim();
+    if (!clue) return;
+    socket.emit('sendClue', { clue });
+    input.value = '';
+  }
+
+  socket.on('connect', () => { myId = socket.id; });
+  socket.on('errorMsg', setError);
+
+  socket.on('roomUpdate', (room) => {
+    if (room.state === 'lobby') {
+      show('lobby');
+      document.getElementById('roomCode').textContent = room.code;
+      document.getElementById('playersList').innerHTML =
+        room.players.map(p => '<div class="player">' + p.name + (p.id === room.host ? ' 👑' : '') + '</div>').join('');
+      const isHost = room.host === socket.id;
+      document.getElementById('startBtn').classList.toggle('hidden', !isHost);
+      document.getElementById('waitMsg').classList.toggle('hidden', isHost);
+    }
+  });
+
+  socket.on('gameUpdate', (data) => {
+    show('game');
+    document.getElementById('myWord').textContent = data.word;
+    document.getElementById('gamePlayers').innerHTML =
+      data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? ' ← son tour' : '') + '</div>').join('');
+    document.getElementById('clues').innerHTML =
+      data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
+    document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
+  });
+</script>
+</body>
+</html>
