@@ -9,206 +9,304 @@
   body { margin: 0; font-family: Arial, sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
   .container { width: 100%; max-width: 480px; }
   h1 { text-align: center; color: #e94560; }
+  h3 { margin: 12px 0 6px; }
   .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
-  input { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; }
-  button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
-  button:hover { background: #c73650; }
+  .hidden { display: none !important; }
+  input { width: 100%; padding: 12px; margin: 6px 0; border: none; border-radius: 8px; font-size: 16px; }
+  button { width: 100%; padding: 12px; margin: 6px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
   button.secondary { background: #0f3460; }
-  .hidden { display: none; }
-  .code { font-size: 32px; letter-spacing: 6px; text-align: center; font-weight: bold; color: #f5a623; }
-  .player { padding: 8px 12px; margin: 4px 0; background: #0f3460; border-radius: 8px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .code { text-align: center; font-size: 42px; letter-spacing: 8px; font-weight: bold; color: #e94560; margin: 10px 0; }
+  .player { padding: 8px 10px; margin: 4px 0; background: #0f3460; border-radius: 6px; }
   .player.active { background: #e94560; }
   .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
   .error { color: #ff6b6b; text-align: center; min-height: 20px; }
   .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
   .langs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
-  .langs button { width: auto; padding: 8px 14px; margin: 0; background: #0f3460; font-size: 14px; }
-  .langs button.selected { background: #e94560; }
+  .langs button { width: auto; padding: 8px 14px; margin: 0; background: #0f3460; }
+  .langs button.on { background: #e94560; }
+  .center { text-align: center; }
+  .result-title { text-align: center; font-size: 24px; font-weight: bold; margin: 10px 0; }
+  .win { color: #4cd964; }
+  .lose { color: #ff6b6b; }
+  .voted { opacity: .6; }
+  [dir="rtl"] { text-align: right; }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="container" id="root">
+  <h1>🕵️ <span data-t="title"></span></h1>
+
   <div class="langs">
-    <button id="lang-fr" onclick="setLang('fr')">FranÃ§ais</button>
-    <button id="lang-he" onclick="setLang('he')">×ŨŨ¨ŨŠ</button>
+    <button id="lang-fr" onclick="setLang('fr')">Français</button>
+    <button id="lang-he" onclick="setLang('he')">עברית</button>
     <button id="lang-en" onclick="setLang('en')">English</button>
   </div>
 
-  <h1>ðĩïļ <span data-t="title"></span></h1>
   <div class="error" id="error"></div>
 
   <!-- ACCUEIL -->
   <div id="home" class="card">
-    <input id="name" data-p="pseudo" maxlength="15">
+    <input id="name" maxlength="16" data-p="pseudo">
     <button onclick="createRoom()" data-t="create"></button>
-    <input id="codeInput" data-p="codeGame" maxlength="5" style="text-transform:uppercase">
+    <input id="codeInput" maxlength="4" style="text-transform:uppercase" data-p="codePh">
     <button class="secondary" onclick="joinRoom()" data-t="join"></button>
   </div>
 
   <!-- LOBBY -->
   <div id="lobby" class="card hidden">
-    <div data-t="gameCode"></div>
+    <div class="center" data-t="gameCode"></div>
     <div class="code" id="roomCode"></div>
     <h3 data-t="players"></h3>
     <div id="playersList"></div>
     <button id="startBtn" class="hidden" onclick="startGame()" data-t="start"></button>
-    <div id="waitMsg" data-t="waiting"></div>
+    <div id="waitMsg" class="center" data-t="wait"></div>
   </div>
 
-  <!-- JEU -->
+  <!-- JEU : MOTS -->
   <div id="game" class="card hidden">
-    <div data-t="yourWord"></div>
+    <div class="center" data-t="yourWord"></div>
     <div class="word-box" id="myWord"></div>
+    <div class="center" id="roundInfo"></div>
     <h3 data-t="players"></h3>
     <div id="gamePlayers"></div>
-    <h3 data-t="clues"></h3>
-    <div id="clues"></div>
-    <div id="turnArea">
-      <input id="clueInput" data-p="cluePlaceholder">
+    <div id="turnArea" class="hidden">
+      <input id="clueInput" maxlength="24" data-p="cluePh">
       <button onclick="sendClue()" data-t="send"></button>
     </div>
   </div>
+
+  <!-- VOTE -->
+  <div id="voting" class="card hidden">
+    <div class="center" data-t="yourWord"></div>
+    <div class="word-box" id="myWord2"></div>
+    <h3 data-t="cluesSaid"></h3>
+    <div id="cluesList"></div>
+    <h3 data-t="voteTitle"></h3>
+    <div id="voteButtons"></div>
+    <div id="voteWait" class="center hidden" data-t="voteWait"></div>
+  </div>
+
+  <!-- RESULTAT -->
+  <div id="result" class="card hidden">
+    <div class="result-title" id="resultTitle"></div>
+    <div class="center" id="resultDetail"></div>
+    <h3 data-t="allWords"></h3>
+    <div id="resultPlayers"></div>
+    <button id="againBtn" class="hidden" onclick="again()" data-t="again"></button>
+    <div id="againWait" class="center hidden" data-t="againWait"></div>
+  </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
-
-let myId = null;
-let currentLang = localStorage.getItem('lang') || 'fr';
-let lastRoom = null;
-let lastGame = null;
-
 const T = {
   fr: {
-    title: 'IMPOSTEUR',
-    pseudo: 'Ton pseudo',
-    create: 'CrÃĐer une partie privÃĐe',
-    codeGame: 'Code de la partie',
-    join: 'Rejoindre avec un code',
-    gameCode: 'Code de la partie :',
-    players: 'Joueurs :',
-    start: 'Lancer la partie',
-    waiting: "En attente de l'hÃīte (3 joueurs minimum)...",
-    yourWord: 'Ton mot :',
-    clues: 'Mots dits :',
-    cluePlaceholder: 'Dis un mot en rapport avec ton mot',
-    send: 'Envoyer',
-    yourTurn: ' â son tour',
-    needName: 'Entre un pseudo !',
-    needCode: 'Entre un code !'
+    title: "IMPOSTEUR", pseudo: "Ton pseudo", create: "Créer une partie privée",
+    codePh: "Code de la partie", join: "Rejoindre avec un code",
+    gameCode: "Code de la partie :", players: "Joueurs :", start: "Lancer la partie",
+    wait: "En attente de l'hôte (3 joueurs minimum)...",
+    yourWord: "Ton mot :", cluePh: "Dis un mot en rapport avec ton mot", send: "Envoyer",
+    round: "Tour", herTurn: " ← son tour", yourTurn: " ← à toi de jouer !",
+    cluesSaid: "Mots dits :", voteTitle: "Qui est l'imposteur ? Vote !",
+    voteWait: "Vote enregistré. En attente des autres...", voted: " (a voté)",
+    groupWins: "🎉 Le groupe a gagné !", impostorWins: "😈 L'imposteur a gagné !",
+    tieMsg: "Égalité des votes !", accused: "Le plus accusé", impostorWas: "L'imposteur était",
+    allWords: "Les mots :", impTag: " 🕵️ (imposteur)", again: "Rejouer", againWait: "En attente de l'hôte...",
+    needName: "Entre un pseudo.", badCode: "Code invalide.", started: "La partie a déjà commencé.",
+    full: "Partie pleine (10 max).", nameTaken: "Ce pseudo est déjà pris.", min3: "Il faut au moins 3 joueurs.",
+    needCode: "Entre un code !", disconnected: "Connexion perdue. Recharge la page."
   },
   he: {
-    title: '××ŨĐŨŨ',
-    pseudo: 'Ũ”ŨŨŨ ŨŨŨŨŨŨ Ũ©ŨŨ',
-    create: 'ŨŨŨ¦ŨŨŨ ŨŨŨŨ ŨŨŨ',
-    codeGame: 'Ũ§ŨŨ Ũ”ŨŨŨŨ',
-    join: 'Ũ”Ũ¦ŨŨ¨Ũ£ ŨŨŨ¢ŨŨŨ¨ Ũ§ŨŨ',
-    gameCode: 'Ũ§ŨŨ Ũ”ŨŨŨŨ:',
-    players: 'ŨŨ”ŨŨ§ŨŨ:',
-    start: 'Ũ”ŨŨŨŨ ŨŨŨŨŨ',
-    waiting: 'ŨŨŨŨŨŨ ŨŨŨ ŨŨ Ũ (ŨŨŨŨ ŨŨ 3 ŨŨ©ŨŨ§ŨŨ)...',
-    yourWord: 'Ũ”ŨŨŨŨ Ũ©ŨŨ:',
-    clues: 'ŨŨŨŨ Ũ©ŨŨŨ¨Ũ:',
-    cluePlaceholder: 'ŨŨŨ¨ ŨŨŨŨ Ũ”Ũ§Ũ©ŨŨ¨Ũ” ŨŨŨŨŨ Ũ©ŨŨ',
-    send: 'Ũ©ŨŨ',
-    yourTurn: ' â Ũ”ŨŨŨ¨ Ũ©ŨŨ',
-    needName: 'ŨŨŨ Ũ Ũ©Ũ ŨŨ©ŨŨ©!',
-    needCode: 'ŨŨŨ Ũ Ũ§ŨŨ!'
+    title: "מתחזה", pseudo: "הכינוי שלך", create: "צור משחק פרטי",
+    codePh: "קוד המשחק", join: "הצטרף עם קוד",
+    gameCode: "קוד המשחק:", players: "שחקנים:", start: "התחל משחק",
+    wait: "ממתין למארח (לפחות 3 שחקנים)...",
+    yourWord: "המילה שלך:", cluePh: "אמור מילה הקשורה למילה שלך", send: "שלח",
+    round: "סיבוב", herTurn: " ← התור שלו", yourTurn: " ← התור שלך!",
+    cluesSaid: "מילים שנאמרו:", voteTitle: "מי המתחזה? הצבע!",
+    voteWait: "ההצבעה נקלטה. ממתין לאחרים...", voted: " (הצביע)",
+    groupWins: "🎉 הקבוצה ניצחה!", impostorWins: "😈 המתחזה ניצח!",
+    tieMsg: "תיקו בהצבעה!", accused: "הנאשם ביותר", impostorWas: "המתחזה היה",
+    allWords: "המילים:", impTag: " 🕵️ (מתחזה)", again: "שחק שוב", againWait: "ממתין למארח...",
+    needName: "הכנס כינוי.", badCode: "קוד לא תקין.", started: "המשחק כבר התחיל.",
+    full: "המשחק מלא (מקסימום 10).", nameTaken: "הכינוי כבר תפוס.", min3: "צריך לפחות 3 שחקנים.",
+    needCode: "הכנס קוד!", disconnected: "החיבור אבד. רענן את הדף."
   },
   en: {
-    title: 'IMPOSTOR',
-    pseudo: 'Your nickname',
-    create: 'Create a private game',
-    codeGame: 'Game code',
-    join: 'Join with a code',
-    gameCode: 'Game code:',
-    players: 'Players:',
-    start: 'Start the game',
-    waiting: 'Waiting for the host (3 players minimum)...',
-    yourWord: 'Your word:',
-    clues: 'Words said:',
-    cluePlaceholder: 'Say a word related to your word',
-    send: 'Send',
-    yourTurn: ' â their turn',
-    needName: 'Enter a nickname!',
-    needCode: 'Enter a code!'
+    title: "IMPOSTOR", pseudo: "Your nickname", create: "Create a private game",
+    codePh: "Game code", join: "Join with a code",
+    gameCode: "Game code:", players: "Players:", start: "Start the game",
+    wait: "Waiting for the host (3 players minimum)...",
+    yourWord: "Your word:", cluePh: "Say a word related to your word", send: "Send",
+    round: "Round", herTurn: " ← their turn", yourTurn: " ← your turn!",
+    cluesSaid: "Words said:", voteTitle: "Who is the impostor? Vote!",
+    voteWait: "Vote saved. Waiting for the others...", voted: " (voted)",
+    groupWins: "🎉 The group wins!", impostorWins: "😈 The impostor wins!",
+    tieMsg: "Votes are tied!", accused: "Most accused", impostorWas: "The impostor was",
+    allWords: "The words:", impTag: " 🕵️ (impostor)", again: "Play again", againWait: "Waiting for the host...",
+    needName: "Enter a nickname.", badCode: "Invalid code.", started: "The game already started.",
+    full: "Game is full (10 max).", nameTaken: "Nickname already taken.", min3: "At least 3 players needed.",
+    needCode: "Enter a code!", disconnected: "Connection lost. Reload the page."
   }
 };
+const LANG_INDEX = { fr: 0, he: 1, en: 2 };
 
-function t(key) { return T[currentLang][key]; }
+let currentLang = localStorage.getItem("lang") || "fr";
+let state = null;
+let ws = null;
+
+function t(k) { return T[currentLang][k] || k; }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "'" }[c]));
+}
+function wordOf(arr) { return arr ? arr[LANG_INDEX[currentLang]] : ""; }
 
 function setLang(l) {
   currentLang = l;
-  localStorage.setItem('lang', l);
+  localStorage.setItem("lang", l);
   document.documentElement.lang = l;
-  document.documentElement.dir = (l === 'he') ? 'rtl' : 'ltr';
-  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
-  document.querySelectorAll('[data-p]').forEach(el => { el.placeholder = t(el.dataset.p); });
-  ['fr','he','en'].forEach(x => document.getElementById('lang-' + x).classList.toggle('selected', x === l));
-  if (lastRoom) renderRoom(lastRoom);
-  if (lastGame) renderGame(lastGame);
+  document.getElementById("root").setAttribute("dir", l === "he" ? "rtl" : "ltr");
+  document.querySelectorAll("[data-t]").forEach(e => e.textContent = t(e.dataset.t));
+  document.querySelectorAll("[data-p]").forEach(e => e.placeholder = t(e.dataset.p));
+  ["fr", "he", "en"].forEach(x => document.getElementById("lang-" + x).classList.toggle("on", x === l));
+  if (state) render();
+}
+
+function setError(msg) {
+  const el = document.getElementById("error");
+  el.textContent = msg || "";
+  if (msg) setTimeout(() => { el.textContent = ""; }, 4000);
 }
 
 function show(id) {
-  ['home','lobby','game'].forEach(x => document.getElementById(x).classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
+  ["home", "lobby", "game", "voting", "result"].forEach(x => document.getElementById(x).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
 }
-function setError(msg) {
-  document.getElementById('error').textContent = msg || '';
-  if (msg) setTimeout(() => document.getElementById('error').textContent = '', 4000);
+
+// ---- Connexion WebSocket ----
+function connect() {
+  const proto = location.protocol === "https:" ? "wss://" : "ws://";
+  ws = new WebSocket(proto + location.host);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "error") { setError(t(msg.key)); return; }
+    if (msg.type === "state") { state = msg; render(); }
+  };
+  ws.onclose = () => { if (state) setError(t("disconnected")); };
 }
+function sendMsg(obj) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+}
+
+// ---- Actions ----
 function getName() {
-  const n = document.getElementById('name').value.trim();
-  if (!n) { setError(t('needName')); return null; }
+  const n = document.getElementById("name").value.trim();
+  if (!n) { setError(t("needName")); return null; }
   return n;
 }
 function createRoom() {
   const name = getName(); if (!name) return;
-  socket.emit('createRoom', { name });
+  sendMsg({ type: "create", name });
 }
 function joinRoom() {
   const name = getName(); if (!name) return;
-  const code = document.getElementById('codeInput').value.trim().toUpperCase();
-  if (!code) { setError(t('needCode')); return; }
-  socket.emit('joinRoom', { name, code });
+  const code = document.getElementById("codeInput").value.trim().toUpperCase();
+  if (!code) { setError(t("needCode")); return; }
+  sendMsg({ type: "join", name, code });
 }
-function startGame() { socket.emit('startGame'); }
+function startGame() { sendMsg({ type: "start" }); }
 function sendClue() {
-  const input = document.getElementById('clueInput');
-  const clue = input.value.trim();
-  if (!clue) return;
-  socket.emit('sendClue', { clue });
-  input.value = '';
+  const input = document.getElementById("clueInput");
+  const word = input.value.trim();
+  if (!word) return;
+  sendMsg({ type: "clue", word });
+  input.value = "";
+}
+function vote(id) { sendMsg({ type: "vote", target: id }); }
+function again() { sendMsg({ type: "again" }); }
+
+// ---- Affichage ----
+function render() {
+  const s = state;
+  if (!s) return;
+  if (s.phase === "lobby") renderLobby(s);
+  else if (s.phase === "clues") renderGame(s);
+  else if (s.phase === "voting") renderVoting(s);
+  else if (s.phase === "result") renderResult(s);
 }
 
-function renderRoom(room) {
-  if (room.state !== 'lobby') return;
-  show('lobby');
-  document.getElementById('roomCode').textContent = room.code;
-  document.getElementById('playersList').innerHTML =
-    room.players.map(p => '<div class="player">' + p.name + (p.id === room.host ? ' ð' : '') + '</div>').join('');
-  const isHost = room.host === socket.id;
-  document.getElementById('startBtn').classList.toggle('hidden', !isHost);
-  document.getElementById('waitMsg').classList.toggle('hidden', isHost);
+function renderLobby(s) {
+  show("lobby");
+  document.getElementById("roomCode").textContent = s.code;
+  document.getElementById("playersList").innerHTML = s.players.map(p =>
+    '<div class="player">' + esc(p.name) + (p.id === s.hostId ? " 👑" : "") + "</div>").join("");
+  const isHost = s.hostId === s.youId;
+  document.getElementById("startBtn").classList.toggle("hidden", !isHost);
+  document.getElementById("waitMsg").classList.toggle("hidden", isHost);
 }
 
-function renderGame(data) {
-  show('game');
-  document.getElementById('myWord').textContent = data.word;
-  document.getElementById('gamePlayers').innerHTML =
-    data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? t('yourTurn') : '') + '</div>').join('');
-  document.getElementById('clues').innerHTML =
-    data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
-  document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
+function renderGame(s) {
+  show("game");
+  document.getElementById("myWord").textContent = wordOf(s.myWord);
+  document.getElementById("roundInfo").textContent = t("round") + " " + s.round + "/2";
+  const turnPlayer = s.players[s.turnIndex];
+  document.getElementById("gamePlayers").innerHTML = s.players.map((p, i) => {
+    const active = i === s.turnIndex;
+    const mine = p.id === s.youId;
+    const tag = active ? (mine ? t("yourTurn") : t("herTurn")) : "";
+    const clues = p.clues.length ? " : <b>" + p.clues.map(esc).join(" , ") + "</b>" : "";
+    return '<div class="player ' + (active ? "active" : "") + '">' + esc(p.name) + tag + clues + "</div>";
+  }).join("");
+  document.getElementById("turnArea").classList.toggle("hidden", !(turnPlayer && turnPlayer.id === s.youId));
 }
 
-socket.on('connect', () => { myId = socket.id; });
-socket.on('errorMsg', setError);
-socket.on('roomUpdate', (room) => { lastRoom = room; renderRoom(room); });
-socket.on('gameUpdate', (data) => { lastGame = data; renderGame(data); });
+function renderVoting(s) {
+  show("voting");
+  document.getElementById("myWord2").textContent = wordOf(s.myWord);
+  document.getElementById("cluesList").innerHTML = s.players.map(p =>
+    '<div class="clue"><b>' + esc(p.name) + " :</b> " + p.clues.map(esc).join(" , ") + "</div>").join("");
+  const iVoted = !!s.myVote;
+  const box = document.getElementById("voteButtons");
+  box.innerHTML = "";
+  s.players.forEach(p => {
+    if (p.id === s.youId) return;
+    const b = document.createElement("button");
+    b.textContent = p.name + (p.voted ? t("voted") : "");
+    b.className = s.myVote === p.id ? "" : "secondary";
+    b.disabled = iVoted;
+    b.onclick = () => vote(p.id);
+    box.appendChild(b);
+  });
+  document.getElementById("voteWait").classList.toggle("hidden", !iVoted);
+}
+
+function renderResult(s) {
+  show("result");
+  const r = s.result;
+  const title = document.getElementById("resultTitle");
+  if (r.tie) {
+    title.textContent = t("tieMsg") + " " + t("impostorWins");
+    title.className = "result-title lose";
+  } else if (r.groupWins) {
+    title.textContent = t("groupWins");
+    title.className = "result-title win";
+  } else {
+    title.textContent = t("impostorWins");
+    title.className = "result-title lose";
+  }
+  let detail = "";
+  if (!r.tie) detail += t("accused") + " : " + esc(r.accusedName) + "<br>";
+  detail += t("impostorWas") + " : " + esc(r.impostorName);
+  document.getElementById("resultDetail").innerHTML = detail;
+  document.getElementById("resultPlayers").innerHTML = s.players.map(p =>
+    '<div class="player">' + esc(p.name) + (p.isImpostor ? t("impTag") : "") + " : <b>" + esc(wordOf(p.word)) + "</b></div>").join("");
+  const isHost = s.hostId === s.youId;
+  document.getElementById("againBtn").classList.toggle("hidden", !isHost);
+  document.getElementById("againWait").classList.toggle("hidden", isHost);
+}
 
 setLang(currentLang);
+connect();
 </script>
 </body>
 </html>
