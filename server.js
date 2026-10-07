@@ -6,34 +6,26 @@ const { Server } = require("socket.io");
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
-  const file = path.join(__dirname, "public", "index.html");
-  fs.readFile(file, (err, data) => {
-    if (err) {
-      res.writeHead(500);
-      return res.end("Erreur serveur");
-    }
+  fs.readFile(path.join(__dirname, "public", "index.html"), (err, data) => {
+    if (err) { res.writeHead(500); return res.end("Erreur serveur"); }
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(data);
   });
 });
 
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
-
+const io = new Server(server, { cors: { origin: "*" } });
 const rooms = {};
-let nextId = 1;
 
-const PAIRS = [
-  ["Football", "Basketball"],
-  ["Chat", "Chien"],
-  ["Pizza", "Burger"],
-  ["Paris", "Londres"],
-  ["Soleil", "Lune"],
-  ["Rouge", "Bleu"],
-  ["Été", "Hiver"],
-  ["Montagne", "Plage"]
-];
+const PAIRS = {
+  sport: [["Football", "Basketball"], ["Tennis", "Ping-pong"], ["Natation", "Plongeon"]],
+  celebrite: [["Messi", "Ronaldo"], ["Beyoncé", "Rihanna"], ["Einstein", "Newton"]],
+  film: [["Titanic", "Avatar"], ["Shrek", "Madagascar"], ["Batman", "Superman"]],
+  anime: [["Naruto", "Bleach"], ["One Piece", "Dragon Ball"], ["Pikachu", "Evoli"]],
+  musique: [["Guitare", "Piano"], ["Rap", "Rock"], ["Violon", "Violoncelle"]],
+  nature: [["Montagne", "Plage"], ["Forêt", "Désert"], ["Soleil", "Lune"]],
+  nourriture: [["Pizza", "Burger"], ["Pâtes", "Riz"], ["Chocolat", "Vanille"]],
+  animaux: [["Chat", "Chien"], ["Lion", "Tigre"], ["Dauphin", "Requin"]]
+};
 
 function makeCode() {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -45,259 +37,228 @@ function makeCode() {
   return code;
 }
 
-function broadcast(room) {
+function broadcastRoom(room) {
   for (const p of room.players) {
-    p.ws.emit('roomUpdate', {
+    p.socket.emit("roomUpdate", {
       code: room.code,
       host: room.hostId,
       players: room.players.map(pl => ({ id: pl.id, name: pl.name })),
-      selectedCategory: room.selectedCategory || 'sport'
+      selectedCategory: room.category
     });
   }
 }
 
 function broadcastGame(room) {
-  const impostor = room.players.find(p => p.isImpostor);
+  const cluesAll = [];
+  for (const pl of room.players) {
+    pl.clues.forEach((c, i) => cluesAll.push({ name: pl.name, clue: c, round: i + 1 }));
+  }
   for (const p of room.players) {
-    p.ws.emit('gameUpdate', {
+    p.socket.emit("gameUpdate", {
       phase: room.phase,
       word: p.word,
-      turn: room.players[room.turnIndex]?.id,
-      players: room.players.map(pl => ({ id: pl.id, name: pl.name, isImpostor: pl.isImpostor })),
-      clues: room.players.flatMap(pl => pl.clues.map(clue => ({ name: pl.name, clue })))
-    });
-  }
-}
-
-function broadcastResult(room) {
-  const impostor = room.players.find(p => p.isImpostor);
-  for (const p of room.players) {
-    p.ws.emit('state', {
-      phase: 'result',
-      players: room.players.map(pl => ({ 
-        id: pl.id, 
-        name: pl.name, 
-        isImpostor: pl.isImpostor,
-        word: pl.word
-      })),
-      result: {
-        groupWins: room.result.groupWins,
-        accusedName: room.result.accusedName
-      }
+      category: room.category,
+      turn: room.players[room.turnIndex] ? room.players[room.turnIndex].id : null,
+      round: room.round,
+      players: room.players.map(pl => ({ id: pl.id, name: pl.name })),
+      clues: cluesAll,
+      votes: room.votes
     });
   }
 }
 
 function startGame(room) {
-  const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
+  const list = PAIRS[room.category] || PAIRS.sport;
+  const pair = list[Math.floor(Math.random() * list.length)];
   const flip = Math.random() < 0.5;
-  const common = flip ? pair[0] : pair[1];
-  const odd = flip ? pair[1] : pair[0];
-  const impostorIdx = Math.floor(Math.random() * room.players.length);
-  
-  room.players.forEach((p, i) => {
-    p.isImpostor = i === impostorIdx;
-    p.word = p.isImpostor ? odd : common;
+  const civilWord = flip ? pair[0] : pair[1];
+  const impostorWord = flip ? pair[1] : pair[0];
+  const impostor = room.players[Math.floor(Math.random() * room.players.length)];
+
+  room.players.forEach(p => {
+    p.isImpostor = p === impostor;
+    p.word = p.isImpostor ? impostorWord : civilWord;
     p.clues = [];
   });
-  
+  room.impostorWord = impostorWord;
+  room.civilWord = civilWord;
   room.votes = {};
-  room.result = null;
   room.round = 1;
   room.turnIndex = 0;
   room.phase = "clues";
-  
   broadcastGame(room);
 }
 
 function endVoting(room) {
-  const tally = {};
-  Object.values(room.votes).forEach((id) => {
-    tally[id] = (tally[id] || 0) + 1;
-  });
-  
-  let max = 0;
-  let accusedIds = [];
-  for (const id in tally) {
-    if (tally[id] > max) {
-      max = tally[id];
-      accusedIds = [id];
-    } else if (tally[id] === max) {
-      accusedIds.push(id);
-    }
+  if (room.phase !== "voting") return;
+  room.phase = "end";
+  if (room.voteTimeout) clearTimeout(room.voteTimeout);
+
+  const counts = {};
+  Object.values(room.votes).forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+
+  let max = 0, eliminatedId = null, tie = false;
+  for (const id in counts) {
+    if (counts[id] > max) { max = counts[id]; eliminatedId = id; tie = false; }
+    else if (counts[id] === max) tie = true;
   }
-  
-  const impostor = room.players.find((p) => p.isImpostor);
-  const tie = accusedIds.length !== 1;
-  const accused = tie ? null : room.players.find((p) => p.id === accusedIds[0]);
-  
-  const groupWins = accused && accused.isImpostor;
-  
-  room.result = {
-    groupWins,
-    accusedName: accused ? accused.name : "Égalité !"
+
+  const impostor = room.players.find(p => p.isImpostor);
+  const eliminated = room.players.find(p => p.id === eliminatedId);
+
+  const result = {
+    tie: tie || !eliminated,
+    eliminatedName: eliminated ? eliminated.name : null,
+    wasImpostor: eliminated ? eliminated.isImpostor : false,
+    impostorName: impostor.name,
+    impostorWord: room.impostorWord,
+    civilWord: room.civilWord
   };
-  
-  room.phase = "result";
-  broadcastResult(room);
+
+  for (const p of room.players) p.socket.emit("gameEnd", result);
 }
 
-function removePlayer(ws) {
-  const code = ws.roomCode;
-  const room = rooms[code];
+function removePlayer(socket) {
+  const room = rooms[socket.roomCode];
   if (!room) return;
-  
-  const idx = room.players.findIndex((p) => p.ws === ws);
+  const idx = room.players.findIndex(p => p.socket === socket);
   if (idx === -1) return;
-  
-  const leaving = room.players[idx];
+
   room.players.splice(idx, 1);
-  
+  socket.leave(room.code);
+  socket.roomCode = null;
+
   if (room.players.length === 0) {
-    delete rooms[code];
+    if (room.voteTimeout) clearTimeout(room.voteTimeout);
+    delete rooms[room.code];
     return;
   }
-  
-  if (room.hostId === leaving.id) room.hostId = room.players[0].id;
-  
-  if (room.phase !== "lobby" && room.players.length < 3) {
+
+  if (room.hostId === socket.id) room.hostId = room.players[0].id;
+
+  if (room.phase === "lobby") return broadcastRoom(room);
+
+  if (room.players.length < 3) {
+    if (room.voteTimeout) clearTimeout(room.voteTimeout);
     room.phase = "lobby";
-    room.players.forEach((p) => (p.clues = []));
+    room.votes = {};
+    room.players.forEach(p => { p.clues = []; p.word = null; });
+    for (const p of room.players) p.socket.emit("backToLobby");
+    return broadcastRoom(room);
   }
-  
-  broadcast(room);
+
+  if (room.phase === "clues") {
+    if (idx < room.turnIndex) room.turnIndex--;
+    if (room.turnIndex >= room.players.length) {
+      room.turnIndex = 0;
+      room.round++;
+    }
+    if (room.round > 2) return startVoting(room);
+    return broadcastGame(room);
+  }
+
+  if (room.phase === "voting") {
+    delete room.votes[socket.id];
+    for (const v in room.votes) if (room.votes[v] === socket.id) delete room.votes[v];
+    if (Object.keys(room.votes).length >= room.players.length) return endVoting(room);
+    broadcastGame(room);
+  }
 }
 
-io.on("connection", (ws) => {
-  ws.on("createRoom", (msg) => {
-    const name = String(msg.name || "").trim().slice(0, 16);
-    if (!name) return ws.emit('message', { type: 'error', message: 'Entre un pseudo.' });
-    
+function startVoting(room) {
+  room.phase = "voting";
+  room.votes = {};
+  broadcastGame(room);
+  if (room.voteTimeout) clearTimeout(room.voteTimeout);
+  room.voteTimeout = setTimeout(() => endVoting(room), 15000);
+}
+
+io.on("connection", (socket) => {
+  socket.on("createRoom", ({ name }) => {
     const code = makeCode();
-    const player = { id: String(nextId++), name, ws, clues: [], isImpostor: false, word: null };
-    
-    rooms[code] = {
-      code,
-      hostId: player.id,
-      players: [player],
-      phase: "lobby",
-      votes: {},
-      turnIndex: 0,
-      round: 1,
-      selectedCategory: 'sport',
-      voteTimeout: null
+    const room = {
+      code, hostId: socket.id, players: [], phase: "lobby",
+      category: "sport", votes: {}, round: 1, turnIndex: 0
     };
-    
-    ws.roomCode = code;
-    ws.id = player.id;
-    broadcast(rooms[code]);
+    rooms[code] = room;
+    room.players.push({ id: socket.id, name: String(name || "Joueur").slice(0, 16), socket, clues: [] });
+    socket.roomCode = code;
+    socket.join(code);
+    broadcastRoom(room);
   });
 
-  ws.on("joinRoom", (msg) => {
-    const name = String(msg.name || "").trim().slice(0, 16);
-    const code = String(msg.code || "").trim().toUpperCase();
-    
-    if (!name) return ws.emit('message', { type: 'error', message: 'Entre un pseudo.' });
-    
-    const room = rooms[code];
-    if (!room) return ws.emit('message', { type: 'error', message: 'Code invalide.' });
-    if (room.phase !== "lobby") return ws.emit('message', { type: 'error', message: 'La partie a déjà commencé.' });
-    if (room.players.length >= 10) return ws.emit('message', { type: 'error', message: 'Partie pleine (10 max).' });
-    if (room.players.some((p) => p.name.toLowerCase() === name.toLowerCase()))
-      return ws.emit('message', { type: 'error', message: 'Ce pseudo est déjà pris.' });
-    
-    const player = { id: String(nextId++), name, ws, clues: [], isImpostor: false, word: null };
-    room.players.push(player);
-    ws.roomCode = code;
-    ws.id = player.id;
-    broadcast(room);
+  socket.on("joinRoom", ({ name, code }) => {
+    const room = rooms[String(code || "").toUpperCase()];
+    if (!room) return socket.emit("errorMsg", "Code introuvable");
+    if (room.phase !== "lobby") return socket.emit("errorMsg", "Partie déjà commencée");
+    if (room.players.length >= 10) return socket.emit("errorMsg", "Salle pleine");
+    room.players.push({ id: socket.id, name: String(name || "Joueur").slice(0, 16), socket, clues: [] });
+    socket.roomCode = room.code;
+    socket.join(room.code);
+    broadcastRoom(room);
   });
 
-  ws.on("setCategory", (msg) => {
-    const room = rooms[ws.roomCode];
-    if (!room) return;
-    room.selectedCategory = msg.category;
-    broadcast(room);
+  socket.on("setCategory", (category) => {
+    const room = rooms[socket.roomCode];
+    if (!room || room.phase !== "lobby" || socket.id !== room.hostId) return;
+    if (!PAIRS[category]) return;
+    room.category = category;
+    broadcastRoom(room);
   });
 
-  ws.on("startGame", (msg) => {
-    const room = rooms[ws.roomCode];
-    if (!room) return;
-    if (ws.id !== room.hostId) return;
-    if (room.players.length < 3) return ws.emit('message', { type: 'error', message: 'Il faut au moins 3 joueurs.' });
-    
+  socket.on("startGame", () => {
+    const room = rooms[socket.roomCode];
+    if (!room || socket.id !== room.hostId || room.phase !== "lobby") return;
+    if (room.players.length < 3) return socket.emit("errorMsg", "Minimum 3 joueurs");
     startGame(room);
   });
 
-  ws.on("sendClue", (msg) => {
-    const room = rooms[ws.roomCode];
+  socket.on("clue", (clue) => {
+    const room = rooms[socket.roomCode];
     if (!room || room.phase !== "clues") return;
-    
-    const me = room.players.find((p) => p.ws === ws);
-    if (!me || room.players[room.turnIndex].id !== me.id) return;
-    
-    const clue = String(msg.clue || "").trim().slice(0, 24);
-    if (!clue) return;
-    
-    me.clues.push(clue);
+    const me = room.players[room.turnIndex];
+    if (!me || me.socket !== socket) return;
+    const text = String(clue || "").trim().slice(0, 24);
+    if (!text) return;
+
+    me.clues.push(text);
     room.turnIndex++;
-    
+
     if (room.turnIndex >= room.players.length) {
-      if (room.round >= 2) {
-        room.phase = "voting";
-        broadcastGame(room);
-        
-        if (room.voteTimeout) clearTimeout(room.voteTimeout);
-        room.voteTimeout = setTimeout(() => {
-          endVoting(room);
-        }, 15000);
-      } else {
-        room.round++;
-        room.turnIndex = 0;
-        broadcastGame(room);
-      }
-    } else {
-      broadcastGame(room);
+      if (room.round >= 2) return startVoting(room);
+      room.round++;
+      room.turnIndex = 0;
     }
+    broadcastGame(room);
   });
 
-  ws.on("vote", (msg) => {
-    const room = rooms[ws.roomCode];
+  socket.on("vote", (targetId) => {
+    const room = rooms[socket.roomCode];
     if (!room || room.phase !== "voting") return;
-    
-    const me = room.players.find((p) => p.ws === ws);
-    if (!me) return;
-    
-    const target = msg.votedId;
-    if (!room.players.some((p) => p.id === target) || target === me.id) return;
-    
-    room.votes[me.id] = target;
-    
+    if (targetId === socket.id) return;
+    if (!room.players.some(p => p.id === targetId)) return;
+
+    room.votes[socket.id] = targetId;
+    broadcastGame(room);
+
     if (Object.keys(room.votes).length === room.players.length) {
-      if (room.voteTimeout) clearTimeout(room.voteTimeout);
       endVoting(room);
     }
   });
 
-  ws.on("again", (msg) => {
-    const room = rooms[ws.roomCode];
-    if (!room) return;
-    if (ws.id !== room.hostId) return;
-    
+  socket.on("again", () => {
+    const room = rooms[socket.roomCode];
+    if (!room || socket.id !== room.hostId) return;
     if (room.voteTimeout) clearTimeout(room.voteTimeout);
-    
     room.phase = "lobby";
-    room.players.forEach((p) => (p.clues = [], p.isImpostor = false, p.word = null));
     room.votes = {};
-    room.result = null;
-    room.round = 1;
-    room.turnIndex = 0;
-    
-    broadcast(room);
+    room.players.forEach(p => { p.clues = []; p.word = null; p.isImpostor = false; });
+    for (const p of room.players) p.socket.emit("backToLobby");
+    broadcastRoom(room);
   });
 
-  ws.on("close", () => removePlayer(ws));
-  ws.on("disconnect", () => removePlayer(ws));
+  socket.on("leave", () => removePlayer(socket));
+  socket.on("disconnect", () => removePlayer(socket));
 });
 
-server.listen(PORT, () => console.log('Serveur sur le port ' + PORT));
+server.listen(PORT, () => console.log("Serveur sur le port " + PORT));
