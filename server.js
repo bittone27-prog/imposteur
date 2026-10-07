@@ -19,32 +19,32 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-// Chaque paire : [fr, he, en] pour le mot A et pour le mot B
+// Chaque mot : [français, hébreu, anglais]
 const PAIRS = [
-  [["Foot", "×Ũ“ŨŨ¨Ũ’Ũ", "Soccer"], ["Basket", "ŨŨŨ“ŨŨŨ", "Basketball"]],
-  [["Chat", "Ũ—ŨŨŨ", "Cat"], ["Chien", "ŨŨŨ", "Dog"]],
-  [["Pizza", "ŨŨŨŨ", "Pizza"], ["Burger", "ŨŨ¨Ũ’Ũ¨", "Burger"]],
-  [["Plage", "ŨŨŨŨ£", "Beach"], ["Piscine", "ŨŨ¨ŨŨ", "Pool"]],
-  [["CafÃĐ", "Ũ§Ũ¤Ũ”", "Coffee"], ["ThÃĐ", "ŨŨŨ", "Tea"]],
-  [["Voiture", "ŨŨŨŨŨŨŨŨ", "Car"], ["Moto", "ŨŨŨŨ¢ŨŨ", "Motorcycle"]],
-  [["Avion", "ŨŨŨŨŨŨ", "Airplane"], ["HÃĐlicoptÃĻre", "ŨŨŨŨ§ŨŨ¤ŨŨ¨", "Helicopter"]],
-  [["Pomme", "ŨŨ¤ŨŨ", "Apple"], ["Poire", "ŨŨ’Ũ¡", "Pear"]],
-  [["Lune", "ŨŨ¨Ũ—", "Moon"], ["Soleil", "Ũ©ŨŨ©", "Sun"]],
-  [["Guitare", "ŨŨŨŨ¨Ũ”", "Guitar"], ["Violon", "ŨŨŨŨŨŨŨ", "Violin"]],
-  [["CinÃĐma", "Ũ§ŨŨ ŨŨ", "Cinema"], ["ThÃĐÃĒtre", "ŨŨŨŨ¨ŨŨ", "Theater"]],
-  [["Hiver", "Ũ—ŨŨ£", "Winter"], ["Automne", "Ũ¡ŨŨŨ", "Autumn"]],
-  [["Lion", "ŨŨ¨ŨŨ”", "Lion"], ["Tigre", "Ũ ŨŨ¨", "Tiger"]],
-  [["Montagne", "Ũ”Ũ¨", "Mountain"], ["Colline", "Ũ’Ũ‘Ũ¢Ũ”", "Hill"]],
-  [["Fraise", "ŨŨŨ¨ŨŨ", "Strawberry"], ["Framboise", "ŨŨ ŨŨ‘ŨŨ§", "Raspberry"]],
-  [["Train", "Ũ¨Ũ›ŨŨŨŨŨ", "Train"], ["MÃĐtro", "ŨŨŨ ŨŨŨ ŨŨŨ", "Subway"]],
-  [["Pluie", "Ũ’Ũ©Ũ", "Rain"], ["Neige", "Ũ©ŨŨ’", "Snow"]],
-  [["Chocolat", "Ũ©ŨŨ§ŨŨŨ“", "Chocolate"], ["Caramel", "Ũ§Ũ¨ŨŨŨ", "Caramel"]],
-  [["Ordinateur", "ŨŨ—Ũ©ŨŨ", "Computer"], ["Tablette", "ŨŨŨŨŨ˜", "Tablet"]],
-  [["Mer", "ŨŨ", "Sea"], ["Lac", "ŨŨ’Ũ", "Lake"]],
-  [["Pirate", "Ũ¤ŨŨ¨Ũ˜", "Pirate"], ["Voleur", "Ũ’Ũ ŨŨ‘", "Thief"]],
-  [["ChÃĒteau", "ŨŨŨ¨ŨŨ", "Castle"], ["Palais", "ŨŨŨŨ", "Palace"]],
-  [["Vampire", "ŨŨŨ¤ŨŨ¨", "Vampire"], ["Zombie", "ŨŨŨŨŨ", "Zombie"]],
-  [["Sushi", "Ũ¡ŨŨ©Ũ", "Sushi"], ["Raviolis", "ŨŨ¨ŨŨŨŨ", "Ravioli"]],
+  [["Foot", "כדורגל", "Soccer"], ["Basket", "כדורסל", "Basketball"]],
+  [["Chat", "חתול", "Cat"], ["Chien", "כלב", "Dog"]],
+  [["Pizza", "פיצה", "Pizza"], ["Burger", "המבורגר", "Burger"]],
+  [["Plage", "חוף", "Beach"], ["Piscine", "בריכה", "Pool"]],
+  [["Café", "קפה", "Coffee"], ["Thé", "תה", "Tea"]],
+  [["Voiture", "מכונית", "Car"], ["Moto", "אופנוע", "Motorbike"]],
+  [["Avion", "מטוס", "Plane"], ["Hélicoptère", "מסוק", "Helicopter"]],
+  [["Pomme", "תפוח", "Apple"], ["Poire", "אגס", "Pear"]],
+  [["Lune", "ירח", "Moon"], ["Soleil", "שמש", "Sun"]],
+  [["Guitare", "גיטרה", "Guitar"], ["Violon", "כינור", "Violin"]],
+  [["Cinéma", "קולנוע", "Cinema"], ["Théâtre", "תיאטרון", "Theater"]],
+  [["Hiver", "חורף", "Winter"], ["Automne", "סתיו", "Autumn"]],
+  [["Lion", "אריה", "Lion"], ["Tigre", "נמר", "Tiger"]],
+  [["Montagne", "הר", "Mountain"], ["Colline", "גבעה", "Hill"]],
+  [["Fraise", "תות", "Strawberry"], ["Framboise", "פטל", "Raspberry"]],
+  [["Train", "רכבת", "Train"], ["Métro", "metro", "Subway"]],
+  [["Pluie", "גשם", "Rain"], ["Neige", "שלג", "Snow"]],
+  [["Chocolat", "שוקולד", "Chocolate"], ["Caramel", "קרמל", "Caramel"]],
+  [["Ordinateur", "מחשב", "Computer"], ["Tablette", "טאבלט", "Tablet"]],
+  [["Mer", "ים", "Sea"], ["Lac", "אגם", "Lake"]],
+  [["Pirate", "פיראט", "Pirate"], ["Voleur", "גנב", "Thief"]],
+  [["Château", "טירה", "Castle"], ["Palais", "ארמון", "Palace"]],
+  [["Vampire", "ערפד", "Vampire"], ["Zombie", "זומבי", "Zombie"]],
+  [["Sushi", "סושי", "Sushi"], ["Raviolis", "רביולי", "Ravioli"]],
 ];
 
 const rooms = {};
@@ -76,7 +76,7 @@ function stateFor(room, me) {
     phase: room.phase,
     youId: me.id,
     hostId: room.hostId,
-    myWord: room.phase !== "lobby" ? me.word : null, // [fr, he, en]
+    myWord: room.phase !== "lobby" ? me.word : null,
     turnIndex: room.turnIndex,
     round: room.round,
     players: room.players.map((p) => ({
@@ -87,6 +87,7 @@ function stateFor(room, me) {
       word: room.phase === "result" ? p.word : undefined,
       isImpostor: room.phase === "result" ? p.isImpostor : undefined,
     })),
+    myVote: room.votes[me.id] || null,
     result: room.phase === "result" ? room.result : null,
   };
 }
@@ -99,7 +100,7 @@ function startGame(room) {
   const impostorIdx = Math.floor(Math.random() * room.players.length);
   room.players.forEach((p, i) => {
     p.isImpostor = i === impostorIdx;
-    p.word = p.isImpostor ? odd : common;
+    p.word = p.isImpostor ? odd : common; // tableau [fr, he, en]
     p.clues = [];
   });
   room.votes = {};
@@ -129,7 +130,7 @@ function endVoting(room) {
     tie,
     accusedName: accused ? accused.name : null,
     impostorName: impostor.name,
-    groupWins: !tie && accused && accused.isImpostor,
+    groupWins: !tie && !!accused && accused.isImpostor,
   };
   room.phase = "result";
 }
@@ -149,9 +150,14 @@ function removePlayer(ws) {
   if (room.hostId === leaving.id) room.hostId = room.players[0].id;
   if (room.phase !== "lobby" && room.players.length < 3) {
     room.phase = "lobby";
+    room.votes = {};
     room.players.forEach((p) => (p.clues = []));
   } else if (room.phase === "clues") {
     if (room.turnIndex >= room.players.length) room.turnIndex = 0;
+  } else if (room.phase === "voting") {
+    delete room.votes[leaving.id];
+    for (const k in room.votes) if (room.votes[k] === leaving.id) delete room.votes[k];
+    if (Object.keys(room.votes).length === room.players.length) endVoting(room);
   }
   broadcast(room);
 }
@@ -169,7 +175,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "create") {
       const name = String(msg.name || "").trim().slice(0, 16);
-      if (!name) return send(ws, { type: "error", message: "needName" });
+      if (!name) return send(ws, { type: "error", key: "needName" });
       const code = makeCode();
       const player = { id: String(nextId++), name, ws, clues: [] };
       rooms[code] = {
@@ -189,15 +195,13 @@ wss.on("connection", (ws) => {
     if (msg.type === "join") {
       const name = String(msg.name || "").trim().slice(0, 16);
       const code = String(msg.code || "").trim().toUpperCase();
-      if (!name) return send(ws, { type: "error", message: "needName" });
+      if (!name) return send(ws, { type: "error", key: "needName" });
       const room = rooms[code];
-      if (!room) return send(ws, { type: "error", message: "badCode" });
-      if (room.phase !== "lobby")
-        return send(ws, { type: "error", message: "alreadyStarted" });
-      if (room.players.length >= 10)
-        return send(ws, { type: "error", message: "roomFull" });
+      if (!room) return send(ws, { type: "error", key: "badCode" });
+      if (room.phase !== "lobby") return send(ws, { type: "error", key: "started" });
+      if (room.players.length >= 10) return send(ws, { type: "error", key: "full" });
       if (room.players.some((p) => p.name.toLowerCase() === name.toLowerCase()))
-        return send(ws, { type: "error", message: "nameTaken" });
+        return send(ws, { type: "error", key: "nameTaken" });
       const player = { id: String(nextId++), name, ws, clues: [] };
       room.players.push(player);
       ws.roomCode = code;
@@ -212,8 +216,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "start") {
       if (me.id !== room.hostId) return;
-      if (room.players.length < 3)
-        return send(ws, { type: "error", message: "min3" });
+      if (room.players.length < 3) return send(ws, { type: "error", key: "min3" });
       startGame(room);
       broadcast(room);
     }
