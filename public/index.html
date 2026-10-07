@@ -21,42 +21,51 @@
   .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
   .error { color: #ff6b6b; text-align: center; min-height: 20px; }
   .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
+  .langs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+  .langs button { width: auto; padding: 8px 14px; margin: 0; background: #0f3460; font-size: 14px; }
+  .langs button.selected { background: #e94560; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>🕵️ IMPOSTEUR</h1>
+  <div class="langs">
+    <button id="lang-fr" onclick="setLang('fr')">FranÃ§ais</button>
+    <button id="lang-he" onclick="setLang('he')">×ŨŨ¨ŨŠ</button>
+    <button id="lang-en" onclick="setLang('en')">English</button>
+  </div>
+
+  <h1>ðĩïļ <span data-t="title"></span></h1>
   <div class="error" id="error"></div>
 
   <!-- ACCUEIL -->
   <div id="home" class="card">
-    <input id="name" placeholder="Ton pseudo" maxlength="15">
-    <button onclick="createRoom()">Créer une partie privée</button>
-    <input id="codeInput" placeholder="Code de la partie" maxlength="5" style="text-transform:uppercase">
-    <button class="secondary" onclick="joinRoom()">Rejoindre avec un code</button>
+    <input id="name" data-p="pseudo" maxlength="15">
+    <button onclick="createRoom()" data-t="create"></button>
+    <input id="codeInput" data-p="codeGame" maxlength="5" style="text-transform:uppercase">
+    <button class="secondary" onclick="joinRoom()" data-t="join"></button>
   </div>
 
   <!-- LOBBY -->
   <div id="lobby" class="card hidden">
-    <div>Code de la partie :</div>
+    <div data-t="gameCode"></div>
     <div class="code" id="roomCode"></div>
-    <h3>Joueurs :</h3>
+    <h3 data-t="players"></h3>
     <div id="playersList"></div>
-    <button id="startBtn" class="hidden" onclick="startGame()">Lancer la partie</button>
-    <div id="waitMsg">En attente de l'hôte (3 joueurs minimum)...</div>
+    <button id="startBtn" class="hidden" onclick="startGame()" data-t="start"></button>
+    <div id="waitMsg" data-t="waiting"></div>
   </div>
 
   <!-- JEU -->
   <div id="game" class="card hidden">
-    <div>Ton mot :</div>
+    <div data-t="yourWord"></div>
     <div class="word-box" id="myWord"></div>
-    <h3>Joueurs :</h3>
+    <h3 data-t="players"></h3>
     <div id="gamePlayers"></div>
-    <h3>Mots dits :</h3>
+    <h3 data-t="clues"></h3>
     <div id="clues"></div>
     <div id="turnArea">
-      <input id="clueInput" placeholder="Dis un mot en rapport avec ton mot">
-      <button onclick="sendClue()">Envoyer</button>
+      <input id="clueInput" data-p="cluePlaceholder">
+      <button onclick="sendClue()" data-t="send"></button>
     </div>
   </div>
 </div>
@@ -65,64 +74,141 @@
 <script>
 const socket = io();
 
-    let myId = null;
+let myId = null;
+let currentLang = localStorage.getItem('lang') || 'fr';
+let lastRoom = null;
+let lastGame = null;
 
-  function show(id) {
-    ['home','lobby','game'].forEach(x => document.getElementById(x).classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
+const T = {
+  fr: {
+    title: 'IMPOSTEUR',
+    pseudo: 'Ton pseudo',
+    create: 'CrÃĐer une partie privÃĐe',
+    codeGame: 'Code de la partie',
+    join: 'Rejoindre avec un code',
+    gameCode: 'Code de la partie :',
+    players: 'Joueurs :',
+    start: 'Lancer la partie',
+    waiting: "En attente de l'hÃīte (3 joueurs minimum)...",
+    yourWord: 'Ton mot :',
+    clues: 'Mots dits :',
+    cluePlaceholder: 'Dis un mot en rapport avec ton mot',
+    send: 'Envoyer',
+    yourTurn: ' â son tour',
+    needName: 'Entre un pseudo !',
+    needCode: 'Entre un code !'
+  },
+  he: {
+    title: '××ŨĐŨŨ',
+    pseudo: 'Ũ”ŨŨŨ ŨŨŨŨŨŨ Ũ©ŨŨ',
+    create: 'ŨŨŨ¦ŨŨŨ ŨŨŨŨ ŨŨŨ',
+    codeGame: 'Ũ§ŨŨ Ũ”ŨŨŨŨ',
+    join: 'Ũ”Ũ¦ŨŨ¨Ũ£ ŨŨŨ¢ŨŨŨ¨ Ũ§ŨŨ',
+    gameCode: 'Ũ§ŨŨ Ũ”ŨŨŨŨ:',
+    players: 'ŨŨ”ŨŨ§ŨŨ:',
+    start: 'Ũ”ŨŨŨŨ ŨŨŨŨŨ',
+    waiting: 'ŨŨŨŨŨŨ ŨŨŨ ŨŨ Ũ (ŨŨŨŨ ŨŨ 3 ŨŨ©ŨŨ§ŨŨ)...',
+    yourWord: 'Ũ”ŨŨŨŨ Ũ©ŨŨ:',
+    clues: 'ŨŨŨŨ Ũ©ŨŨŨ¨Ũ:',
+    cluePlaceholder: 'ŨŨŨ¨ ŨŨŨŨ Ũ”Ũ§Ũ©ŨŨ¨Ũ” ŨŨŨŨŨ Ũ©ŨŨ',
+    send: 'Ũ©ŨŨ',
+    yourTurn: ' â Ũ”ŨŨŨ¨ Ũ©ŨŨ',
+    needName: 'ŨŨŨ Ũ Ũ©Ũ ŨŨ©ŨŨ©!',
+    needCode: 'ŨŨŨ Ũ Ũ§ŨŨ!'
+  },
+  en: {
+    title: 'IMPOSTOR',
+    pseudo: 'Your nickname',
+    create: 'Create a private game',
+    codeGame: 'Game code',
+    join: 'Join with a code',
+    gameCode: 'Game code:',
+    players: 'Players:',
+    start: 'Start the game',
+    waiting: 'Waiting for the host (3 players minimum)...',
+    yourWord: 'Your word:',
+    clues: 'Words said:',
+    cluePlaceholder: 'Say a word related to your word',
+    send: 'Send',
+    yourTurn: ' â their turn',
+    needName: 'Enter a nickname!',
+    needCode: 'Enter a code!'
   }
-  function setError(msg) {
-    document.getElementById('error').textContent = msg || '';
-    if (msg) setTimeout(() => document.getElementById('error').textContent = '', 4000);
-  }
-  function getName() {
-    const n = document.getElementById('name').value.trim();
-    if (!n) { setError('Entre un pseudo !'); return null; }
-    return n;
-  }
-  function createRoom() {
-    const name = getName(); if (!name) return;
-    socket.emit('createRoom', { name });
-  }
-  function joinRoom() {
-    const name = getName(); if (!name) return;
-    const code = document.getElementById('codeInput').value.trim().toUpperCase();
-    if (!code) { setError('Entre un code !'); return; }
-    socket.emit('joinRoom', { name, code });
-  }
-  function startGame() { socket.emit('startGame'); }
-  function sendClue() {
-    const input = document.getElementById('clueInput');
-    const clue = input.value.trim();
-    if (!clue) return;
-    socket.emit('sendClue', { clue });
-    input.value = '';
-  }
+};
 
-  socket.on('connect', () => { myId = socket.id; });
-  socket.on('errorMsg', setError);
+function t(key) { return T[currentLang][key]; }
 
-  socket.on('roomUpdate', (room) => {
-    if (room.state === 'lobby') {
-      show('lobby');
-      document.getElementById('roomCode').textContent = room.code;
-      document.getElementById('playersList').innerHTML =
-        room.players.map(p => '<div class="player">' + p.name + (p.id === room.host ? ' 👑' : '') + '</div>').join('');
-      const isHost = room.host === socket.id;
-      document.getElementById('startBtn').classList.toggle('hidden', !isHost);
-      document.getElementById('waitMsg').classList.toggle('hidden', isHost);
-    }
-  });
+function setLang(l) {
+  currentLang = l;
+  localStorage.setItem('lang', l);
+  document.documentElement.lang = l;
+  document.documentElement.dir = (l === 'he') ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll('[data-p]').forEach(el => { el.placeholder = t(el.dataset.p); });
+  ['fr','he','en'].forEach(x => document.getElementById('lang-' + x).classList.toggle('selected', x === l));
+  if (lastRoom) renderRoom(lastRoom);
+  if (lastGame) renderGame(lastGame);
+}
 
-  socket.on('gameUpdate', (data) => {
-    show('game');
-    document.getElementById('myWord').textContent = data.word;
-    document.getElementById('gamePlayers').innerHTML =
-      data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? ' ← son tour' : '') + '</div>').join('');
-    document.getElementById('clues').innerHTML =
-      data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
-    document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
-  });
+function show(id) {
+  ['home','lobby','game'].forEach(x => document.getElementById(x).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function setError(msg) {
+  document.getElementById('error').textContent = msg || '';
+  if (msg) setTimeout(() => document.getElementById('error').textContent = '', 4000);
+}
+function getName() {
+  const n = document.getElementById('name').value.trim();
+  if (!n) { setError(t('needName')); return null; }
+  return n;
+}
+function createRoom() {
+  const name = getName(); if (!name) return;
+  socket.emit('createRoom', { name });
+}
+function joinRoom() {
+  const name = getName(); if (!name) return;
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  if (!code) { setError(t('needCode')); return; }
+  socket.emit('joinRoom', { name, code });
+}
+function startGame() { socket.emit('startGame'); }
+function sendClue() {
+  const input = document.getElementById('clueInput');
+  const clue = input.value.trim();
+  if (!clue) return;
+  socket.emit('sendClue', { clue });
+  input.value = '';
+}
+
+function renderRoom(room) {
+  if (room.state !== 'lobby') return;
+  show('lobby');
+  document.getElementById('roomCode').textContent = room.code;
+  document.getElementById('playersList').innerHTML =
+    room.players.map(p => '<div class="player">' + p.name + (p.id === room.host ? ' ð' : '') + '</div>').join('');
+  const isHost = room.host === socket.id;
+  document.getElementById('startBtn').classList.toggle('hidden', !isHost);
+  document.getElementById('waitMsg').classList.toggle('hidden', isHost);
+}
+
+function renderGame(data) {
+  show('game');
+  document.getElementById('myWord').textContent = data.word;
+  document.getElementById('gamePlayers').innerHTML =
+    data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? t('yourTurn') : '') + '</div>').join('');
+  document.getElementById('clues').innerHTML =
+    data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
+  document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
+}
+
+socket.on('connect', () => { myId = socket.id; });
+socket.on('errorMsg', setError);
+socket.on('roomUpdate', (room) => { lastRoom = room; renderRoom(room); });
+socket.on('gameUpdate', (data) => { lastGame = data; renderGame(data); });
+
+setLang(currentLang);
 </script>
 </body>
 </html>
