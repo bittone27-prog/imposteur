@@ -1,3 +1,4 @@
+const socket = io();
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -63,8 +64,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  const socket = io();
-  let myId = null;
+    let myId = null;
 
   function show(id) {
     ['home','lobby','game'].forEach(x => document.getElementById(x).classList.add('hidden'));
