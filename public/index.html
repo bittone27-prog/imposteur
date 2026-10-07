@@ -188,6 +188,22 @@ function leaveRoom() {
     }
   });
 
+socket.on('gameUpdate', (data) => {
+    if (data.phase === 'clues') {
+      show('game');
+      document.getElementById('myWord').textContent = data.word;
+      document.getElementById('gamePlayers').innerHTML =
+        data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? ' ← son tour' : '') + '</div>').join('');
+      document.getElementById('clues').innerHTML =
+        data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
+      document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
+    } else if (data.phase === 'voting') {
+      show('vote');
+      document.getElementById('voteList').innerHTML = 
+        data.players.map(p => '<button onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
+    }
+  });
+
 socket.on('state', (data) => {
   if (data.phase === 'result') {
     show('result');
@@ -206,6 +222,15 @@ socket.on('state', (data) => {
       '<p><b>Éliminé :</b> ' + (accused ? accused.name : 'Égalité !') + '</p>';
   }
 });
+
+function playAgain() {
+  socket.emit('again');
+  show('lobby');
+}
+
+function leaveRoom() {
+  location.reload();
+}
 
 function playAgain() {
   socket.emit('again');
