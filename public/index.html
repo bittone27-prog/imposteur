@@ -15,6 +15,8 @@
   button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
   button:hover { background: #c73650; }
   button.secondary { background: #0f3460; }
+  button.voted { background: #f5a623; }
+  button.voted:hover { background: #d4891a; }
   .hidden { display: none; }
   .code { font-size: 32px; letter-spacing: 6px; text-align: center; font-weight: bold; color: #f5a623; }
   .player { padding: 8px 12px; margin: 4px 0; background: #0f3460; border-radius: 8px; }
@@ -22,6 +24,12 @@
   .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
   .error { color: #ff6b6b; text-align: center; min-height: 20px; }
   .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
+  .vote-btn { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #0f3460; color: #fff; cursor: pointer; }
+  .vote-btn:hover { background: #1a4d7a; }
+  .vote-btn.voted { background: #f5a623; }
+  .vote-btn.voted:hover { background: #d4891a; }
+  .timer { font-size: 24px; text-align: center; font-weight: bold; color: #f5a623; margin: 15px 0; }
+  .timer.danger { color: #ff6b6b; }
 </style>
 </head>
 <body>
@@ -77,6 +85,7 @@
   <!-- VOTE -->
   <div id="vote" class="card hidden">
     <h2>À qui voter ?</h2>
+    <div class="timer" id="voteTimer">15</div>
     <div id="voteList"></div>
   </div>
 
@@ -96,6 +105,8 @@
   const socket = io();
   let myId = null;
   let isHost = false;
+  let voteTimer = null;
+  let votedFor = null;
 
   function show(id) {
     ['home','lobby','game','vote','result'].forEach(x => document.getElementById(x).classList.add('hidden'));
@@ -145,11 +156,51 @@
   }
 
   function vote(playerId) {
+    votedFor = playerId;
     socket.emit('vote', { votedId: playerId });
+    updateVoteButtons();
+  }
+
+  function updateVoteButtons() {
+    const buttons = document.querySelectorAll('.vote-btn');
+    buttons.forEach(btn => {
+      if (btn.dataset.playerId === votedFor) {
+        btn.classList.add('voted');
+      } else {
+        btn.classList.remove('voted');
+      }
+    });
+  }
+
+  function startVoteTimer() {
+    let timeLeft = 15;
+    const timerEl = document.getElementById('voteTimer');
+    
+    updateTimerDisplay(timeLeft, timerEl);
+    
+    voteTimer = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay(timeLeft, timerEl);
+      
+      if (timeLeft <= 0) {
+        clearInterval(voteTimer);
+        voteTimer = null;
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(timeLeft, timerEl) {
+    timerEl.textContent = timeLeft;
+    if (timeLeft <= 5) {
+      timerEl.classList.add('danger');
+    } else {
+      timerEl.classList.remove('danger');
+    }
   }
 
   function playAgain() {
     socket.emit('again');
+    votedFor = null;
   }
 
   function leaveRoom() {
@@ -184,14 +235,17 @@
         data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
       document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
     } else if (data.phase === 'voting') {
+      votedFor = null;
       show('vote');
       document.getElementById('voteList').innerHTML = 
-        data.players.map(p => '<button onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
+        data.players.map(p => '<button class="vote-btn" data-playerId="' + p.id + '" onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
+      startVoteTimer();
     }
   });
 
   socket.on('state', (data) => {
     if (data.phase === 'result') {
+      if (voteTimer) clearInterval(voteTimer);
       show('result');
       const impostor = data.players.find(p => p.isImpostor);
       
