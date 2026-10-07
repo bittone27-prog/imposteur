@@ -135,13 +135,24 @@
     socket.emit('startGame'); 
   }
 
-  function sendClue() {
+ function sendClue() {
     const input = document.getElementById('clueInput');
     const clue = input.value.trim();
     if (!clue) return;
     socket.emit('sendClue', { clue });
     input.value = '';
   }
+
+function playAgain() {
+  socket.emit('startGame');
+}
+
+function leaveRoom() {
+  socket.emit('leave');
+  show('home');
+  document.getElementById('name').value = '';
+  document.getElementById('codeInput').value = '';
+}
 
   socket.on('message', (data) => {
     if (data.type === 'error') {
