@@ -19,13 +19,32 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+// Chaque paire : [fr, he, en] pour le mot A et pour le mot B
 const PAIRS = [
-  ["Foot", "Basket"], ["Chat", "Chien"], ["Pizza", "Burger"], ["Plage", "Piscine"],
-  ["Café", "Thé"], ["Voiture", "Moto"], ["Avion", "Hélicoptère"], ["Pomme", "Poire"],
-  ["Lune", "Soleil"], ["Guitare", "Violon"], ["Cinéma", "Théâtre"], ["Hiver", "Automne"],
-  ["Lion", "Tigre"], ["Montagne", "Colline"], ["Fraise", "Framboise"], ["Train", "Métro"],
-  ["Pluie", "Neige"], ["Chocolat", "Caramel"], ["Ordinateur", "Tablette"], ["Mer", "Lac"],
-  ["Pirate", "Voleur"], ["Château", "Palais"], ["Vampire", "Zombie"], ["Sushi", "Raviolis"],
+  [["Foot", "×Ũ“ŨŨ¨Ũ’Ũ", "Soccer"], ["Basket", "ŨŨŨ“ŨŨŨ", "Basketball"]],
+  [["Chat", "Ũ—ŨŨŨ", "Cat"], ["Chien", "ŨŨŨ", "Dog"]],
+  [["Pizza", "ŨŨŨŨ", "Pizza"], ["Burger", "ŨŨ¨Ũ’Ũ¨", "Burger"]],
+  [["Plage", "ŨŨŨŨ£", "Beach"], ["Piscine", "ŨŨ¨ŨŨ", "Pool"]],
+  [["CafÃĐ", "Ũ§Ũ¤Ũ”", "Coffee"], ["ThÃĐ", "ŨŨŨ", "Tea"]],
+  [["Voiture", "ŨŨŨŨŨŨŨŨ", "Car"], ["Moto", "ŨŨŨŨ¢ŨŨ", "Motorcycle"]],
+  [["Avion", "ŨŨŨŨŨŨ", "Airplane"], ["HÃĐlicoptÃĻre", "ŨŨŨŨ§ŨŨ¤ŨŨ¨", "Helicopter"]],
+  [["Pomme", "ŨŨ¤ŨŨ", "Apple"], ["Poire", "ŨŨ’Ũ¡", "Pear"]],
+  [["Lune", "ŨŨ¨Ũ—", "Moon"], ["Soleil", "Ũ©ŨŨ©", "Sun"]],
+  [["Guitare", "ŨŨŨŨ¨Ũ”", "Guitar"], ["Violon", "ŨŨŨŨŨŨŨ", "Violin"]],
+  [["CinÃĐma", "Ũ§ŨŨ ŨŨ", "Cinema"], ["ThÃĐÃĒtre", "ŨŨŨŨ¨ŨŨ", "Theater"]],
+  [["Hiver", "Ũ—ŨŨ£", "Winter"], ["Automne", "Ũ¡ŨŨŨ", "Autumn"]],
+  [["Lion", "ŨŨ¨ŨŨ”", "Lion"], ["Tigre", "Ũ ŨŨ¨", "Tiger"]],
+  [["Montagne", "Ũ”Ũ¨", "Mountain"], ["Colline", "Ũ’Ũ‘Ũ¢Ũ”", "Hill"]],
+  [["Fraise", "ŨŨŨ¨ŨŨ", "Strawberry"], ["Framboise", "ŨŨ ŨŨ‘ŨŨ§", "Raspberry"]],
+  [["Train", "Ũ¨Ũ›ŨŨŨŨŨ", "Train"], ["MÃĐtro", "ŨŨŨ ŨŨŨ ŨŨŨ", "Subway"]],
+  [["Pluie", "Ũ’Ũ©Ũ", "Rain"], ["Neige", "Ũ©ŨŨ’", "Snow"]],
+  [["Chocolat", "Ũ©ŨŨ§ŨŨŨ“", "Chocolate"], ["Caramel", "Ũ§Ũ¨ŨŨŨ", "Caramel"]],
+  [["Ordinateur", "ŨŨ—Ũ©ŨŨ", "Computer"], ["Tablette", "ŨŨŨŨŨ˜", "Tablet"]],
+  [["Mer", "ŨŨ", "Sea"], ["Lac", "ŨŨ’Ũ", "Lake"]],
+  [["Pirate", "Ũ¤ŨŨ¨Ũ˜", "Pirate"], ["Voleur", "Ũ’Ũ ŨŨ‘", "Thief"]],
+  [["ChÃĒteau", "ŨŨŨ¨ŨŨ", "Castle"], ["Palais", "ŨŨŨŨ", "Palace"]],
+  [["Vampire", "ŨŨŨ¤ŨŨ¨", "Vampire"], ["Zombie", "ŨŨŨŨŨ", "Zombie"]],
+  [["Sushi", "Ũ¡ŨŨ©Ũ", "Sushi"], ["Raviolis", "ŨŨ¨ŨŨŨŨ", "Ravioli"]],
 ];
 
 const rooms = {};
@@ -57,7 +76,7 @@ function stateFor(room, me) {
     phase: room.phase,
     youId: me.id,
     hostId: room.hostId,
-    myWord: room.phase !== "lobby" ? me.word : null,
+    myWord: room.phase !== "lobby" ? me.word : null, // [fr, he, en]
     turnIndex: room.turnIndex,
     round: room.round,
     players: room.players.map((p) => ({
@@ -150,7 +169,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "create") {
       const name = String(msg.name || "").trim().slice(0, 16);
-      if (!name) return send(ws, { type: "error", message: "Entre un pseudo." });
+      if (!name) return send(ws, { type: "error", message: "needName" });
       const code = makeCode();
       const player = { id: String(nextId++), name, ws, clues: [] };
       rooms[code] = {
@@ -170,15 +189,15 @@ wss.on("connection", (ws) => {
     if (msg.type === "join") {
       const name = String(msg.name || "").trim().slice(0, 16);
       const code = String(msg.code || "").trim().toUpperCase();
-      if (!name) return send(ws, { type: "error", message: "Entre un pseudo." });
+      if (!name) return send(ws, { type: "error", message: "needName" });
       const room = rooms[code];
-      if (!room) return send(ws, { type: "error", message: "Code invalide." });
+      if (!room) return send(ws, { type: "error", message: "badCode" });
       if (room.phase !== "lobby")
-        return send(ws, { type: "error", message: "La partie a déjà commencé." });
+        return send(ws, { type: "error", message: "alreadyStarted" });
       if (room.players.length >= 10)
-        return send(ws, { type: "error", message: "Partie pleine (10 max)." });
+        return send(ws, { type: "error", message: "roomFull" });
       if (room.players.some((p) => p.name.toLowerCase() === name.toLowerCase()))
-        return send(ws, { type: "error", message: "Ce pseudo est déjà pris." });
+        return send(ws, { type: "error", message: "nameTaken" });
       const player = { id: String(nextId++), name, ws, clues: [] };
       room.players.push(player);
       ws.roomCode = code;
@@ -194,7 +213,7 @@ wss.on("connection", (ws) => {
     if (msg.type === "start") {
       if (me.id !== room.hostId) return;
       if (room.players.length < 3)
-        return send(ws, { type: "error", message: "Il faut au moins 3 joueurs." });
+        return send(ws, { type: "error", message: "min3" });
       startGame(room);
       broadcast(room);
     }
@@ -237,4 +256,4 @@ wss.on("connection", (ws) => {
   ws.on("close", () => removePlayer(ws));
 });
 
-server.listen(PORT, () => console.log(`Jeu lancé sur http://localhost:${PORT}`));
+server.listen(PORT, () => console.log("Serveur sur le port " + PORT));
