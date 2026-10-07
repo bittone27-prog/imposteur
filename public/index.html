@@ -2,144 +2,192 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Imposteur</title>
 <style>
-  body { font-family: Arial, sans-serif; background:#1a1a2e; color:#fff; margin:0; padding:20px; display:flex; justify-content:center; }
-  .card { background:#16213e; padding:20px; border-radius:12px; width:100%; max-width:420px; }
-  input, button { width:100%; padding:12px; margin:6px 0; border-radius:8px; border:none; font-size:16px; box-sizing:border-box; }
-  button { background:#e94560; color:#fff; cursor:pointer; }
-  button.secondary { background:#0f3460; }
-  .hidden { display:none; }
-  .code { font-size:32px; letter-spacing:6px; text-align:center; background:#0f3460; padding:10px; border-radius:8px; margin:10px 0; }
-  .player { padding:6px 0; }
-  .word-box { font-size:28px; text-align:center; background:#0f3460; padding:16px; border-radius:8px; margin:10px 0; }
-  .clue { padding:4px 0; }
-  #error { color:#ff6b6b; text-align:center; min-height:20px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+  .container { width: 100%; max-width: 480px; }
+  h1 { text-align: center; color: #e94560; }
+  .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+  input { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; }
+  select { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; }
+  button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
+  button:hover { background: #c73650; }
+  button.secondary { background: #0f3460; }
+  .hidden { display: none; }
+  .code { font-size: 32px; letter-spacing: 6px; text-align: center; font-weight: bold; color: #f5a623; }
+  .player { padding: 8px 12px; margin: 4px 0; background: #0f3460; border-radius: 8px; }
+  .player.active { background: #e94560; }
+  .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
+  .error { color: #ff6b6b; text-align: center; min-height: 20px; }
+  .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
 </style>
 </head>
 <body>
-<div class="card">
-  <div id="error"></div>
+<div class="container">
+  <h1>🕵️ IMPOSTEUR</h1>
+  <div class="error" id="error"></div>
 
-  <div id="home">
+  <!-- ACCUEIL -->
+  <div id="home" class="card">
     <input id="name" placeholder="Ton pseudo" maxlength="15">
     <button onclick="createRoom()">Créer une partie privée</button>
     <input id="codeInput" placeholder="Code de la partie" maxlength="5" style="text-transform:uppercase">
     <button class="secondary" onclick="joinRoom()">Rejoindre avec un code</button>
   </div>
 
-  <div id="lobby" class="hidden">
+  <!-- LOBBY -->
+  <div id="lobby" class="card hidden">
     <div>Code de la partie :</div>
     <div class="code" id="roomCode"></div>
+    
+    <h3>Catégorie :</h3>
+    <select id="categorySelect" onchange="changeCategory()">
+      <option value="sport">Sport</option>
+      <option value="celebrite">Célébrité</option>
+      <option value="film">Film</option>
+      <option value="anime">Anime</option>
+      <option value="musique">Musique</option>
+      <option value="nature">Nature</option>
+      <option value="nourriture">Nourriture</option>
+      <option value="animaux">Animaux</option>
+    </select>
+    
     <h3>Joueurs :</h3>
     <div id="playersList"></div>
     <button id="startBtn" class="hidden" onclick="startGame()">Lancer la partie</button>
     <div id="waitMsg">En attente de l'hôte (3 joueurs minimum)...</div>
   </div>
 
-  <div id="game" class="hidden">
+  <!-- JEU -->
+  <div id="game" class="card hidden">
     <div>Ton mot :</div>
     <div class="word-box" id="myWord"></div>
     <h3>Joueurs :</h3>
     <div id="gamePlayers"></div>
     <h3>Mots dits :</h3>
     <div id="clues"></div>
-    <div id="turnArea" class="hidden">
+    <div id="turnArea">
       <input id="clueInput" placeholder="Dis un mot en rapport avec ton mot">
       <button onclick="sendClue()">Envoyer</button>
     </div>
   </div>
+
+  <!-- VOTE -->
+  <div id="vote" class="card hidden">
+    <h2>À qui voter ?</h2>
+    <div id="voteList"></div>
+  </div>
+
+  <!-- FIN -->
+  <div id="end" class="card hidden">
+    <h2>Fin de la partie</h2>
+    <div id="result"></div>
+    <button onclick="location.reload()">Nouvelle partie</button>
+  </div>
 </div>
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
-var ws = null;
-var myId = null;
+  const socket = io();
+  let myId = null;
+  let isHost = false;
 
-function connect() {
-  var proto = location.protocol === "https:" ? "wss://" : "ws://";
-  ws = new WebSocket(proto + location.host);
-  ws.onmessage = function (e) {
-    var data = JSON.parse(e.data);
-    if (data.type === "error") setError(data.message);
-    if (data.type === "state") render(data);
-  };
-  ws.onclose = function () { setTimeout(connect, 1500); };
-}
-
-function send(obj) {
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
-  else setError("Connexion en cours, réessaie dans 2 secondes...");
-}
-
-function show(id) {
-  ["home", "lobby", "game"].forEach(function (x) {
-    document.getElementById(x).classList.add("hidden");
-  });
-  document.getElementById(id).classList.remove("hidden");
-}
-
-function setError(msg) {
-  var el = document.getElementById("error");
-  el.textContent = msg || "";
-  if (msg) setTimeout(function () { el.textContent = ""; }, 4000);
-}
-
-function getName() {
-  var n = document.getElementById("name").value.trim();
-  if (!n) { setError("Entre un pseudo !"); return null; }
-  return n;
-}
-
-function createRoom() {
-  var name = getName();
-  if (!name) return;
-  send({ type: "create", name: name });
-}
-
-function joinRoom() {
-  var name = getName();
-  if (!name) return;
-  var code = document.getElementById("codeInput").value.trim().toUpperCase();
-  if (!code) { setError("Entre un code !"); return; }
-  send({ type: "join", name: name, code: code });
-}
-
-function startGame() { send({ type: "start" }); }
-
-function sendClue() {
-  var input = document.getElementById("clueInput");
-  var clue = input.value.trim();
-  if (!clue) return;
-  send({ type: "clue", clue: clue });
-  input.value = "";
-}
-
-function render(s) {
-  myId = s.youId;
-  if (s.phase === "lobby") {
-    show("lobby");
-    document.getElementById("roomCode").textContent = s.code;
-    document.getElementById("playersList").innerHTML = s.players.map(function (p) {
-      return '<div class="player">' + p.name + (p.id === s.hostId ? " 👑" : "") + "</div>";
-    }).join("");
-    var isHost = s.hostId === s.youId;
-    document.getElementById("startBtn").classList.toggle("hidden", !isHost);
-    document.getElementById("waitMsg").classList.toggle("hidden", isHost);
-  } else {
-    show("game");
-    document.getElementById("myWord").textContent = s.word || "";
-    document.getElementById("gamePlayers").innerHTML = s.players.map(function (p) {
-      return '<div class="player">' + p.name + (p.id === s.turnId ? " ← son tour" : "") + "</div>";
-    }).join("");
-    document.getElementById("clues").innerHTML = (s.clues || []).map(function (c) {
-      return '<div class="clue"><b>' + c.name + " :</b> " + c.clue + "</div>";
-    }).join("");
-    document.getElementById("turnArea").classList.toggle("hidden", s.turnId !== s.youId);
+  function show(id) {
+    ['home','lobby','game','vote','end'].forEach(x => document.getElementById(x).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
   }
-}
 
-connect();
+  function setError(msg) {
+    document.getElementById('error').textContent = msg || '';
+    if (msg) setTimeout(() => document.getElementById('error').textContent = '', 4000);
+  }
+
+  function getName() {
+    const n = document.getElementById('name').value.trim();
+    if (!n) { setError('Entre un pseudo !'); return null; }
+    return n;
+  }
+
+  function createRoom() {
+    const name = getName(); 
+    if (!name) return;
+    socket.emit('createRoom', { name });
+  }
+
+  function joinRoom() {
+    const name = getName(); 
+    if (!name) return;
+    const code = document.getElementById('codeInput').value.trim().toUpperCase();
+    if (!code) { setError('Entre un code !'); return; }
+    socket.emit('joinRoom', { name, code });
+  }
+
+  function changeCategory() {
+    const category = document.getElementById('categorySelect').value;
+    socket.emit('setCategory', { category });
+  }
+
+  function startGame() { 
+    socket.emit('startGame'); 
+  }
+
+  function sendClue() {
+    const input = document.getElementById('clueInput');
+    const clue = input.value.trim();
+    if (!clue) return;
+    socket.emit('sendClue', { clue });
+    input.value = '';
+  }
+
+  socket.on('message', (data) => {
+    if (data.type === 'error') {
+      setError(data.message);
+    }
+  });
+
+  socket.on('roomUpdate', (data) => {
+    show('lobby');
+    document.getElementById('roomCode').textContent = data.code;
+    document.getElementById('categorySelect').value = data.selectedCategory || 'sport';
+    document.getElementById('playersList').innerHTML = 
+      data.players.map(p => '<div class="player">' + p.name + '</div>').join('');
+    
+    isHost = data.host === socket.id;
+    document.getElementById('startBtn').classList.toggle('hidden', !isHost || data.players.length < 3);
+    document.getElementById('waitMsg').classList.toggle('hidden', isHost && data.players.length >= 3);
+  });
+
+  socket.on('gameUpdate', (data) => {
+    if (data.phase === 'clues') {
+      show('game');
+      document.getElementById('myWord').textContent = data.word;
+      document.getElementById('gamePlayers').innerHTML =
+        data.players.map(p => '<div class="player ' + (p.id === data.turn ? 'active' : '') + '">' + p.name + (p.id === data.turn ? ' ← son tour' : '') + '</div>').join('');
+      document.getElementById('clues').innerHTML =
+        data.clues.map(c => '<div class="clue"><b>' + c.name + ' :</b> ' + c.clue + '</div>').join('');
+      document.getElementById('turnArea').classList.toggle('hidden', data.turn !== socket.id);
+    } else if (data.phase === 'voting') {
+      show('vote');
+      document.getElementById('voteList').innerHTML = 
+        data.players.map(p => '<button onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
+    }
+  });
+
+  function vote(playerId) {
+    socket.emit('vote', { votedId: playerId });
+  }
+
+  socket.on('gameEnd', (result) => {
+    show('end');
+    document.getElementById('result').innerHTML = 
+      '<p><b>' + result.eliminatedName + '</b> a été éliminé.</p>' +
+      '<p>Était imposteur : ' + (result.wasImpostor ? '✓ OUI' : '✗ NON') + '</p>' +
+      '<p>L\'imposteur était : <b>' + result.impostorWas + '</b></p>';
+  });
+
+  show('home');
 </script>
 </body>
 </html>
