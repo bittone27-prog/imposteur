@@ -85,7 +85,14 @@
     <h2>Fin de la partie</h2>
     <div id="result"></div>
     <button onclick="location.reload()">Nouvelle partie</button>
-  </div>
+ <!-- RÉSULTAT -->
+<div id="result" class="card hidden">
+  <h2 id="resultTitle"></h2>
+  <div id="resultMessage"></div>
+  <h3>Votes :</h3>
+  <div id="resultVotes"></div>
+  <button onclick="playAgain()">Rejouer</button>
+  <button class="secondary" onclick="leaveRoom()">Quitter le groupe</button>
 </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
