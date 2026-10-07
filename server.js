@@ -1,255 +1,295 @@
+const express = require("express");
 const http = require("http");
-const fs = require("fs");
+const socketIo = require("socket.io");
 const path = require("path");
-const { WebSocketServer } = require("ws");
 
-const PORT = process.env.PORT || 3000;
-
-const server = http.createServer((req, res) => {
-  const file = path.join(__dirname, "public", "index.html");
-  fs.readFile(file, (err, data) => {
-    if (err) {
-      res.writeHead(500);
-      return res.end("Erreur serveur");
-    }
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(data);
-  });
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-const wss = new WebSocketServer({ server });
+app.use(express.static(path.join(__dirname, "public")));
 
-// [français, hébreu, anglais]
-const PAIRS = [
-  [["Foot", "כדורגל", "Soccer"], ["Basket", "כדורסל", "Basketball"]],
-  [["Chat", "חתול", "Cat"], ["Chien", "כלב", "Dog"]],
-  [["Pizza", "פיצה", "Pizza"], ["Burger", "המבורגר", "Burger"]],
-  [["Plage", "חוף", "Beach"], ["Piscine", "בריכה", "Pool"]],
-  [["Café", "קפה", "Coffee"], ["Thé", "תה", "Tea"]],
-  [["Voiture", "מכונית", "Car"], ["Moto", "אופנוע", "Motorbike"]],
-  [["Avion", "מטוס", "Plane"], ["Hélicoptère", "מסוק", "Helicopter"]],
-  [["Pomme", "תפוח", "Apple"], ["Poire", "אגס", "Pear"]],
-  [["Lune", "ירח", "Moon"], ["Soleil", "שמש", "Sun"]],
-  [["Guitare", "גיטרה", "Guitar"], ["Violon", "כינור", "Violin"]],
-  [["Cinéma", "קולנוע", "Cinema"], ["Théâtre", "תיאטרון", "Theater"]],
-  [["Hiver", "חורף", "Winter"], ["Automne", "סתיו", "Autumn"]],
-  [["Lion", "אריה", "Lion"], ["Tigre", "נמר", "Tiger"]],
-  [["Montagne", "הר", "Mountain"], ["Colline", "גבעה", "Hill"]],
-  [["Fraise", "תות", "Strawberry"], ["Framboise", "פטל", "Raspberry"]],
-  [["Train", "רכבת", "Train"], ["Métro", "מטרו", "Subway"]],
-  [["Pluie", "גשם", "Rain"], ["Neige", "שלג", "Snow"]],
-  [["Chocolat", "שוקולד", "Chocolate"], ["Caramel", "קרמל", "Caramel"]],
-  [["Ordinateur", "מחשב", "Computer"], ["Tablette", "טאבלט", "Tablet"]],
-  [["Mer", "ים", "Sea"], ["Lac", "אגם", "Lake"]],
-  [["Pirate", "פיראט", "Pirate"], ["Voleur", "גנב", "Thief"]],
-  [["Château", "טירה", "Castle"], ["Palais", "ארמון", "Palace"]],
-  [["Vampire", "ערפד", "Vampire"], ["Zombie", "זומבי", "Zombie"]],
-  [["Sushi", "סושי", "Sushi"], ["Raviolis", "רביולי", "Ravioli"]],
-];
+const PORT = process.env.PORT || 3000;
+let nextId = 0;
+let rooms = {};
 
-const rooms = {};
-let nextId = 1;
+const CATEGORIES = {
+  sport: [
+    ["Football", "Sport"],
+    ["Tennis", "Sport"],
+    ["Natation", "Sport"],
+    ["Basket", "Sport"],
+    ["Volleyball", "Sport"],
+    ["Cyclisme", "Sport"]
+  ],
+  celebrite: [
+    ["Elon Musk", "Personnage célèbre"],
+    ["Taylor Swift", "Personnage célèbre"],
+    ["Cristiano Ronaldo", "Personnage célèbre"],
+    ["Beyoncé", "Personnage célèbre"],
+    ["Dwayne Johnson", "Personnage célèbre"],
+    ["Oprah Winfrey", "Personnage célèbre"]
+  ],
+  film: [
+    ["Marvel", "Film"],
+    ["Star Wars", "Film"],
+    ["Harry Potter", "Film"],
+    ["Titanic", "Film"],
+    ["Avatar", "Film"],
+    ["Inception", "Film"]
+  ],
+  anime: [
+    ["One Piece", "Anime"],
+    ["Naruto", "Anime"],
+    ["Dragon Ball", "Anime"],
+    ["Attack on Titan", "Anime"],
+    ["Demon Slayer", "Anime"],
+    ["My Hero Academia", "Anime"]
+  ],
+  musique: [
+    ["Guitare", "Musique"],
+    ["Piano", "Musique"],
+    ["Batterie", "Musique"],
+    ["Violon", "Musique"],
+    ["Saxophone", "Musique"],
+    ["Microphone", "Musique"]
+  ],
+  nature: [
+    ["Arbre", "Nature"],
+    ["Montagne", "Nature"],
+    ["Océan", "Nature"],
+    ["Forêt", "Nature"],
+    ["Fleur", "Nature"],
+    ["Soleil", "Nature"]
+  ],
+  nourriture: [
+    ["Pizza", "Nourriture"],
+    ["Sushi", "Nourriture"],
+    ["Burger", "Nourriture"],
+    ["Pâtes", "Nourriture"],
+    ["Glace", "Nourriture"],
+    ["Chocolat", "Nourriture"]
+  ],
+  animaux: [
+    ["Chat", "Animal"],
+    ["Chien", "Animal"],
+    ["Lion", "Animal"],
+    ["Éléphant", "Animal"],
+    ["Oiseau", "Animal"],
+    ["Poisson", "Animal"]
+  ]
+};
 
 function makeCode() {
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  let code;
-  do {
-    code = "";
-    for (let i = 0; i < 4; i++) code += letters[Math.floor(Math.random() * letters.length)];
-  } while (rooms[code]);
-  return code;
-}
-
-function send(ws, data) {
-  if (ws.readyState === 1) ws.send(JSON.stringify(data));
-}
-
-function stateFor(room, me) {
-  return {
-    type: "state",
-    code: room.code,
-    phase: room.phase,
-    youId: me.id,
-    hostId: room.hostId,
-    myWord: room.phase !== "lobby" ? me.word : null,
-    myVote: room.votes[me.id] || null,
-    turnIndex: room.turnIndex,
-    round: room.round,
-    players: room.players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      clues: p.clues,
-      voted: room.votes[p.id] !== undefined,
-      word: room.phase === "result" ? p.word : undefined,
-      isImpostor: room.phase === "result" ? p.isImpostor : undefined,
-    })),
-    result: room.phase === "result" ? room.result : null,
-  };
-}
-
-function broadcast(room) {
-  for (const p of room.players) send(p.ws, stateFor(room, p));
+  return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
 function startGame(room) {
-  const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
+  const category = room.selectedCategory || "sport";
+  const pairs = CATEGORIES[category] || CATEGORIES.sport;
+  const pair = pairs[Math.floor(Math.random() * pairs.length)];
+  
   const flip = Math.random() < 0.5;
   const common = flip ? pair[0] : pair[1];
   const odd = flip ? pair[1] : pair[0];
   const impostorIdx = Math.floor(Math.random() * room.players.length);
+
   room.players.forEach((p, i) => {
     p.isImpostor = i === impostorIdx;
     p.word = p.isImpostor ? odd : common;
     p.clues = [];
   });
+
   room.votes = {};
   room.result = null;
   room.round = 1;
   room.turnIndex = 0;
   room.phase = "clues";
+  room.clues = [];
 }
 
-function endVoting(room) {
-  const tally = {};
-  Object.values(room.votes).forEach((id) => (tally[id] = (tally[id] || 0) + 1));
-  let max = 0;
-  let accusedIds = [];
-  for (const id in tally) {
-    if (tally[id] > max) {
-      max = tally[id];
-      accusedIds = [id];
-    } else if (tally[id] === max) {
-      accusedIds.push(id);
-    }
-  }
-  const impostor = room.players.find((p) => p.isImpostor);
-  const tie = accusedIds.length !== 1;
-  const accused = tie ? null : room.players.find((p) => p.id === accusedIds[0]);
-  room.result = {
-    tie,
-    accusedName: accused ? accused.name : null,
-    impostorName: impostor.name,
-    groupWins: !tie && !!accused && accused.isImpostor,
+function broadcastLobby(room) {
+  const lobbyData = {
+    type: "roomUpdate",
+    code: room.code,
+    state: "lobby",
+    host: room.hostId,
+    players: room.players.map(p => ({ id: p.id, name: p.name })),
+    categories: Object.keys(CATEGORIES),
+    selectedCategory: room.selectedCategory
   };
-  room.phase = "result";
+
+  io.to(room.code).emit("roomUpdate", lobbyData);
 }
 
-function removePlayer(ws) {
-  const code = ws.roomCode;
-  const room = rooms[code];
-  if (!room) return;
-  const idx = room.players.findIndex((p) => p.ws === ws);
-  if (idx === -1) return;
-  const leaving = room.players[idx];
-  room.players.splice(idx, 1);
-  if (room.players.length === 0) {
-    delete rooms[code];
-    return;
-  }
-  if (room.hostId === leaving.id) room.hostId = room.players[0].id;
-  if (room.phase !== "lobby" && room.players.length < 3) {
-    room.phase = "lobby";
-    room.votes = {};
-    room.players.forEach((p) => (p.clues = []));
-  } else if (room.phase === "clues") {
-    if (room.turnIndex >= room.players.length) room.turnIndex = 0;
-  }
-  broadcast(room);
-}
+io.on("connection", (socket) => {
+  socket.on("createRoom", (msg) => {
+    const name = String(msg.name || "").trim().slice(0, 16);
+    if (!name) return socket.emit("message", { type: "error", message: "Entre un pseudo." });
 
-wss.on("connection", (ws) => {
-  ws.on("message", (raw) => {
-    let msg;
-    try {
-      msg = JSON.parse(raw);
-    } catch {
-      return;
+    const code = makeCode();
+    const player = { id: socket.id, name, clues: [] };
+    rooms[code] = {
+      code,
+      hostId: socket.id,
+      players: [player],
+      phase: "lobby",
+      votes: {},
+      turnIndex: 0,
+      round: 1,
+      clues: [],
+      selectedCategory: "sport"
+    };
+
+    socket.join(code);
+    socket.roomCode = code;
+    broadcastLobby(rooms[code]);
+  });
+
+  socket.on("joinRoom", (msg) => {
+    const name = String(msg.name || "").trim().slice(0, 16);
+    const code = String(msg.code || "").trim().toUpperCase();
+
+    if (!name) return socket.emit("message", { type: "error", message: "Entre un pseudo." });
+    const room = rooms[code];
+    if (!room) return socket.emit("message", { type: "error", message: "Code invalide." });
+    if (room.phase !== "lobby") return socket.emit("message", { type: "error", message: "La partie a déjà commencé." });
+    if (room.players.length >= 10) return socket.emit("message", { type: "error", message: "Partie pleine (10 max)." });
+    if (room.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+      return socket.emit("message", { type: "error", message: "Ce pseudo est déjà pris." });
     }
 
-    if (msg.type === "create") {
-      const name = String(msg.name || "").trim().slice(0, 16);
-      if (!name) return send(ws, { type: "error", key: "needName" });
-      const code = makeCode();
-      const player = { id: String(nextId++), name, ws, clues: [] };
-      rooms[code] = {
-        code,
-        hostId: player.id,
-        players: [player],
-        phase: "lobby",
-        votes: {},
-        turnIndex: 0,
-        round: 1,
-      };
-      ws.roomCode = code;
-      broadcast(rooms[code]);
-      return;
-    }
+    const player = { id: socket.id, name, clues: [] };
+    room.players.push(player);
+    socket.join(code);
+    socket.roomCode = code;
+    broadcastLobby(room);
+  });
 
-    if (msg.type === "join") {
-      const name = String(msg.name || "").trim().slice(0, 16);
-      const code = String(msg.code || "").trim().toUpperCase();
-      if (!name) return send(ws, { type: "error", key: "needName" });
-      const room = rooms[code];
-      if (!room) return send(ws, { type: "error", key: "badCode" });
-      if (room.phase !== "lobby") return send(ws, { type: "error", key: "started" });
-      if (room.players.length >= 10) return send(ws, { type: "error", key: "full" });
-      if (room.players.some((p) => p.name.toLowerCase() === name.toLowerCase()))
-        return send(ws, { type: "error", key: "nameTaken" });
-      const player = { id: String(nextId++), name, ws, clues: [] };
-      room.players.push(player);
-      ws.roomCode = code;
-      broadcast(room);
-      return;
-    }
-
-    const room = rooms[ws.roomCode];
+  socket.on("setCategory", (msg) => {
+    const room = rooms[socket.roomCode];
     if (!room) return;
-    const me = room.players.find((p) => p.ws === ws);
-    if (!me) return;
 
-    if (msg.type === "start") {
-      if (me.id !== room.hostId) return;
-      if (room.players.length < 3) return send(ws, { type: "error", key: "min3" });
-      startGame(room);
-      broadcast(room);
-    }
+    const me = room.players.find((p) => p.id === socket.id);
+    if (!me || me.id !== room.hostId) return;
 
-    if (msg.type === "clue" && room.phase === "clues") {
-      if (room.players[room.turnIndex].id !== me.id) return;
-      const word = String(msg.word || "").trim().slice(0, 24);
-      if (!word) return;
-      me.clues.push(word);
-      room.turnIndex++;
-      if (room.turnIndex >= room.players.length) {
-        if (room.round >= 2) {
-          room.phase = "voting";
-        } else {
-          room.round++;
-          room.turnIndex = 0;
-        }
-      }
-      broadcast(room);
-    }
-
-    if (msg.type === "vote" && room.phase === "voting") {
-      if (room.votes[me.id] !== undefined) return;
-      if (!room.players.some((p) => p.id === msg.target) || msg.target === me.id) return;
-      room.votes[me.id] = msg.target;
-      if (Object.keys(room.votes).length === room.players.length) endVoting(room);
-      broadcast(room);
-    }
-
-    if (msg.type === "again") {
-      if (me.id !== room.hostId) return;
-      room.phase = "lobby";
-      room.players.forEach((p) => (p.clues = []));
-      room.votes = {};
-      room.result = null;
-      broadcast(room);
+    const category = String(msg.category || "").toLowerCase();
+    if (CATEGORIES[category]) {
+      room.selectedCategory = category;
+      broadcastLobby(room);
     }
   });
 
-  ws.on("close", () => removePlayer(ws));
+  socket.on("startGame", () => {
+    const room = rooms[socket.roomCode];
+    if (!room) return;
+
+    const me = room.players.find((p) => p.id === socket.id);
+    if (!me || me.id !== room.hostId) return;
+    if (room.players.length < 3) {
+      return socket.emit("message", { type: "error", message: "Il faut au moins 3 joueurs." });
+    }
+
+    startGame(room);
+    
+    room.players.forEach((p) => {
+      io.to(p.id).emit("gameUpdate", {
+        word: p.word,
+        players: room.players.map(pl => ({ id: pl.id, name: pl.name })),
+        turn: room.players[room.turnIndex]?.id,
+        clues: room.clues,
+        phase: room.phase,
+        round: room.round,
+        category: room.selectedCategory
+      });
+    });
+  });
+
+  socket.on("sendClue", (msg) => {
+    const room = rooms[socket.roomCode];
+    if (!room || room.phase !== "clues") return;
+
+    const me = room.players.find((p) => p.id === socket.id);
+    if (!me) return;
+
+    if (room.players[room.turnIndex].id !== socket.id) return;
+
+    const clue = String(msg.clue || "").trim().slice(0, 24);
+    if (!clue) return;
+
+    room.clues.push({ name: me.name, clue });
+    room.turnIndex++;
+
+    if (room.turnIndex >= room.players.length) {
+      if (room.round >= 2) {
+        room.phase = "voting";
+      } else {
+        room.round++;
+        room.turnIndex = 0;
+      }
+    }
+
+    room.players.forEach((p) => {
+      io.to(p.id).emit("gameUpdate", {
+        word: p.word,
+        players: room.players.map(pl => ({ id: pl.id, name: pl.name })),
+        turn: room.players[room.turnIndex]?.id,
+        clues: room.clues,
+        phase: room.phase,
+        round: room.round,
+        category: room.selectedCategory
+      });
+    });
+  });
+
+  socket.on("vote", (msg) => {
+    const room = rooms[socket.roomCode];
+    if (!room || room.phase !== "voting") return;
+
+    room.votes[socket.id] = msg.votedId;
+
+    if (Object.keys(room.votes).length === room.players.length) {
+      const voteCounts = {};
+      Object.values(room.votes).forEach((id) => {
+        voteCounts[id] = (voteCounts[id] || 0) + 1;
+      });
+
+      const maxVotes = Math.max(...Object.values(voteCounts));
+      const elimId = Object.keys(voteCounts).find((id) => voteCounts[id] === maxVotes);
+
+      const elim = room.players.find((p) => p.id === elimId);
+      const isImpostorElim = elim.isImpostor;
+
+      room.result = {
+        eliminatedName: elim.name,
+        wasImpostor: isImpostorElim,
+        impostorWas: room.players.find((p) => p.isImpostor).name
+      };
+
+      room.phase = "end";
+      io.to(room.code).emit("gameEnd", room.result);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    const room = rooms[socket.roomCode];
+    if (!room) return;
+
+    room.players = room.players.filter((p) => p.id !== socket.id);
+
+    if (room.players.length === 0) {
+      delete rooms[socket.roomCode];
+    } else {
+      if (room.hostId === socket.id) {
+        room.hostId = room.players[0].id;
+      }
+      if (room.phase === "lobby") {
+        broadcastLobby(room);
+      }
+    }
+  });
 });
 
-server.listen(PORT, () => console.log("Serveur sur le port " + PORT));
+server.listen(PORT, () => console.log(`Serveur sur le port ${PORT}`));
