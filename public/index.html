@@ -11,31 +11,30 @@
   h1 { text-align: center; color: #e94560; }
   h3 { margin: 12px 0 6px; }
   .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
-  .hidden { display: none !important; }
-  input { width: 100%; padding: 12px; margin: 6px 0; border: none; border-radius: 8px; font-size: 16px; }
-  button { width: 100%; padding: 12px; margin: 6px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
+  input { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; }
+  button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; background: #e94560; color: #fff; cursor: pointer; }
+  button:hover { background: #c73650; }
+  button:disabled { opacity: 0.5; cursor: default; }
   button.secondary { background: #0f3460; }
-  button:disabled { opacity: .5; cursor: default; }
-  .code { text-align: center; font-size: 42px; letter-spacing: 8px; font-weight: bold; color: #e94560; margin: 10px 0; }
-  .player { padding: 8px 10px; margin: 4px 0; background: #0f3460; border-radius: 6px; }
+  .hidden { display: none !important; }
+  .code { font-size: 32px; letter-spacing: 6px; text-align: center; font-weight: bold; color: #f5a623; }
+  .player { padding: 8px 12px; margin: 4px 0; background: #0f3460; border-radius: 8px; }
   .player.active { background: #e94560; }
   .word-box { text-align: center; font-size: 28px; font-weight: bold; padding: 20px; background: #0f3460; border-radius: 12px; margin: 10px 0; }
   .error { color: #ff6b6b; text-align: center; min-height: 20px; }
   .clue { padding: 6px 10px; margin: 3px 0; background: #0f3460; border-radius: 6px; }
-  .langs { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
-  .langs button { width: auto; padding: 8px 14px; margin: 0; background: #0f3460; }
+  .langs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .langs button { margin: 0; padding: 8px; font-size: 14px; background: #0f3460; }
   .langs button.on { background: #e94560; }
-  .center { text-align: center; }
-  .result-title { text-align: center; font-size: 24px; font-weight: bold; margin: 10px 0; }
+  .result-title { text-align: center; font-size: 22px; font-weight: bold; margin: 10px 0; }
   .win { color: #4cd964; }
   .lose { color: #ff6b6b; }
-  .voted { opacity: .6; }
-  [dir="rtl"] { text-align: right; }
+  .center { text-align: center; }
 </style>
 </head>
 <body>
-<div class="container" id="root">
-  <h1>🕵️ <span data-t="title"></span></h1>
+<div class="container">
+  <h1>🕵️ IMPOSTEUR</h1>
 
   <div class="langs">
     <button id="lang-fr" onclick="setLang('fr')">Français</button>
@@ -47,161 +46,183 @@
 
   <!-- ACCUEIL -->
   <div id="home" class="card">
-    <input id="name" maxlength="16" data-p="pseudo">
-    <button onclick="createRoom()" data-t="create"></button>
-    <input id="codeInput" maxlength="4" style="text-transform:uppercase" data-p="codePh">
-    <button class="secondary" onclick="joinRoom()" data-t="join"></button>
+    <input id="name" maxlength="15">
+    <button id="createBtn" onclick="createRoom()"></button>
+    <input id="codeInput" maxlength="4" style="text-transform:uppercase">
+    <button id="joinBtn" class="secondary" onclick="joinRoom()"></button>
   </div>
 
   <!-- LOBBY -->
   <div id="lobby" class="card hidden">
-    <div class="center" data-t="gameCode"></div>
+    <div id="codeLabel"></div>
     <div class="code" id="roomCode"></div>
-    <h3 data-t="players"></h3>
+    <h3 id="playersTitle"></h3>
     <div id="playersList"></div>
-    <button id="startBtn" class="hidden" onclick="startGame()" data-t="start"></button>
-    <div id="waitMsg" class="center" data-t="wait"></div>
+    <button id="startBtn" class="hidden" onclick="startGame()"></button>
+    <div id="waitMsg" class="center"></div>
   </div>
 
-  <!-- JEU : MOTS -->
+  <!-- INDICES -->
   <div id="game" class="card hidden">
-    <div class="center" data-t="yourWord"></div>
+    <div id="wordLabel"></div>
     <div class="word-box" id="myWord"></div>
-    <div class="center" id="roundInfo"></div>
-    <h3 data-t="players"></h3>
+    <div id="roundInfo" class="center"></div>
+    <h3 id="gamePlayersTitle"></h3>
     <div id="gamePlayers"></div>
-    <div id="turnArea" class="hidden">
-      <input id="clueInput" maxlength="24" data-p="cluePh">
-      <button onclick="sendClue()" data-t="send"></button>
+    <h3 id="cluesTitle"></h3>
+    <div id="clues"></div>
+    <div id="turnArea">
+      <input id="clueInput" maxlength="24">
+      <button id="sendBtn" onclick="sendClue()"></button>
     </div>
   </div>
 
   <!-- VOTE -->
   <div id="voting" class="card hidden">
-    <div class="center" data-t="yourWord"></div>
-    <div class="word-box" id="myWord2"></div>
-    <h3 data-t="cluesSaid"></h3>
-    <div id="cluesList"></div>
-    <h3 data-t="voteTitle"></h3>
+    <div id="voteWordLabel"></div>
+    <div class="word-box" id="voteWord"></div>
+    <h3 id="voteTitle"></h3>
+    <div id="allClues"></div>
+    <h3 id="voteWho"></h3>
     <div id="voteButtons"></div>
-    <div id="voteWait" class="center hidden" data-t="voteWait"></div>
+    <div id="voteWait" class="center hidden"></div>
   </div>
 
   <!-- RESULTAT -->
   <div id="result" class="card hidden">
-    <div class="result-title" id="resultTitle"></div>
-    <div class="center" id="resultDetail"></div>
-    <h3 data-t="allWords"></h3>
+    <div id="resultTitle" class="result-title"></div>
+    <div id="resultDetail" class="center"></div>
+    <h3 id="resultWordsTitle"></h3>
     <div id="resultPlayers"></div>
-    <button id="againBtn" class="hidden" onclick="again()" data-t="again"></button>
-    <div id="againWait" class="center hidden" data-t="againWait"></div>
+    <button id="againBtn" class="hidden" onclick="again()"></button>
+    <div id="againWait" class="center hidden"></div>
   </div>
 </div>
 
 <script>
 const T = {
   fr: {
-    title: "IMPOSTEUR", pseudo: "Ton pseudo", create: "Créer une partie privée",
-    codePh: "Code de la partie", join: "Rejoindre avec un code",
-    gameCode: "Code de la partie :", players: "Joueurs :", start: "Lancer la partie",
-    wait: "En attente de l'hôte (3 joueurs minimum)...",
-    yourWord: "Ton mot :", cluePh: "Dis un mot en rapport avec ton mot", send: "Envoyer",
-    round: "Tour", herTurn: " ← son tour", yourTurn: " ← à toi de jouer !",
-    cluesSaid: "Mots dits :", voteTitle: "Qui est l'imposteur ? Vote !",
-    voteWait: "Vote enregistré. En attente des autres...", voted: " (a voté)",
-    groupWins: "🎉 Le groupe a gagné !", impostorWins: "😈 L'imposteur a gagné !",
-    tieMsg: "Égalité des votes !", accused: "Le plus accusé", impostorWas: "L'imposteur était",
-    allWords: "Les mots :", impTag: " 🕵️ (imposteur)", again: "Rejouer", againWait: "En attente de l'hôte...",
-    needName: "Entre un pseudo.", badCode: "Code invalide.", started: "La partie a déjà commencé.",
-    full: "Partie pleine (10 max).", nameTaken: "Ce pseudo est déjà pris.", min3: "Il faut au moins 3 joueurs.",
-    needCode: "Entre un code !", disconnected: "Connexion perdue. Recharge la page."
+    pseudo: "Ton pseudo", create: "Créer une partie privée", code: "Code de la partie",
+    join: "Rejoindre avec un code", codeIs: "Code de la partie :", players: "Joueurs :",
+    start: "Lancer la partie", waitHost: "En attente de l'hôte (3 joueurs minimum)...",
+    yourWord: "Ton mot :", round: "Tour", turn: " ← son tour", clues: "Mots dits :",
+    cluePh: "Dis un mot en rapport avec ton mot", send: "Envoyer",
+    voteTitle: "Tous les mots dits :", voteWho: "Qui est l'imposteur ?",
+    voted: " ✔", voteWait: "En attente des autres votes...",
+    groupWins: "🎉 Le groupe a trouvé l'imposteur !", impostorWins: "😈 L'imposteur gagne !",
+    tieMsg: "Égalité des votes.", accused: "Accusé", impostorWas: "L'imposteur était",
+    words: "Les mots :", impTag: " 🕵️", again: "Rejouer", againWait: "En attente de l'hôte...",
+    needName: "Entre un pseudo !", needCode: "Entre un code !", badCode: "Code invalide.",
+    started: "La partie a déjà commencé.", full: "Partie pleine (10 max).",
+    nameTaken: "Ce pseudo est déjà pris.", min3: "Il faut au moins 3 joueurs.",
+    lost: "Connexion perdue. Recharge la page."
   },
   he: {
-    title: "מתחזה", pseudo: "הכינוי שלך", create: "צור משחק פרטי",
-    codePh: "קוד המשחק", join: "הצטרף עם קוד",
-    gameCode: "קוד המשחק:", players: "שחקנים:", start: "התחל משחק",
-    wait: "ממתין למארח (לפחות 3 שחקנים)...",
-    yourWord: "המילה שלך:", cluePh: "אמור מילה הקשורה למילה שלך", send: "שלח",
-    round: "סיבוב", herTurn: " ← התור שלו", yourTurn: " ← התור שלך!",
-    cluesSaid: "מילים שנאמרו:", voteTitle: "מי המתחזה? הצבע!",
-    voteWait: "ההצבעה נקלטה. ממתין לאחרים...", voted: " (הצביע)",
-    groupWins: "🎉 הקבוצה ניצחה!", impostorWins: "😈 המתחזה ניצח!",
-    tieMsg: "תיקו בהצבעה!", accused: "הנאשם ביותר", impostorWas: "המתחזה היה",
-    allWords: "המילים:", impTag: " 🕵️ (מתחזה)", again: "שחק שוב", againWait: "ממתין למארח...",
-    needName: "הכנס כינוי.", badCode: "קוד לא תקין.", started: "המשחק כבר התחיל.",
-    full: "המשחק מלא (מקסימום 10).", nameTaken: "הכינוי כבר תפוס.", min3: "צריך לפחות 3 שחקנים.",
-    needCode: "הכנס קוד!", disconnected: "החיבור אבד. רענן את הדף."
+    pseudo: "הכינוי שלך", create: "צור משחק פרטי", code: "קוד המשחק",
+    join: "הצטרף עם קוד", codeIs: "קוד המשחק:", players: "שחקנים:",
+    start: "התחל משחק", waitHost: "ממתין למארח (מינימום 3 שחקנים)...",
+    yourWord: "המילה שלך:", round: "סיבוב", turn: " ← התור שלו", clues: "מילים שנאמרו:",
+    cluePh: "אמור מילה הקשורה למילה שלך", send: "שלח",
+    voteTitle: "כל המילים שנאמרו:", voteWho: "מי הרמאי?",
+    voted: " ✔", voteWait: "ממתין להצבעות האחרות...",
+    groupWins: "🎉 הקבוצה מצאה את הרמאי!", impostorWins: "😈 הרמאי ניצח!",
+    tieMsg: "תיקו בהצבעות.", accused: "הואשם", impostorWas: "הרמאי היה",
+    words: "המילים:", impTag: " 🕵️", again: "שחק שוב", againWait: "ממתין למארח...",
+    needName: "הכנס כינוי!", needCode: "הכנס קוד!", badCode: "קוד שגוי.",
+    started: "המשחק כבר התחיל.", full: "המשחק מלא (מקסימום 10).",
+    nameTaken: "הכינוי כבר תפוס.", min3: "צריך לפחות 3 שחקנים.",
+    lost: "החיבור אבד. רענן את הדף."
   },
   en: {
-    title: "IMPOSTOR", pseudo: "Your nickname", create: "Create a private game",
-    codePh: "Game code", join: "Join with a code",
-    gameCode: "Game code:", players: "Players:", start: "Start the game",
-    wait: "Waiting for the host (3 players minimum)...",
-    yourWord: "Your word:", cluePh: "Say a word related to your word", send: "Send",
-    round: "Round", herTurn: " ← their turn", yourTurn: " ← your turn!",
-    cluesSaid: "Words said:", voteTitle: "Who is the impostor? Vote!",
-    voteWait: "Vote saved. Waiting for the others...", voted: " (voted)",
-    groupWins: "🎉 The group wins!", impostorWins: "😈 The impostor wins!",
-    tieMsg: "Votes are tied!", accused: "Most accused", impostorWas: "The impostor was",
-    allWords: "The words:", impTag: " 🕵️ (impostor)", again: "Play again", againWait: "Waiting for the host...",
-    needName: "Enter a nickname.", badCode: "Invalid code.", started: "The game already started.",
-    full: "Game is full (10 max).", nameTaken: "Nickname already taken.", min3: "At least 3 players needed.",
-    needCode: "Enter a code!", disconnected: "Connection lost. Reload the page."
+    pseudo: "Your nickname", create: "Create a private game", code: "Game code",
+    join: "Join with a code", codeIs: "Game code:", players: "Players:",
+    start: "Start game", waitHost: "Waiting for the host (3 players minimum)...",
+    yourWord: "Your word:", round: "Round", turn: " ← their turn", clues: "Words said:",
+    cluePh: "Say a word related to your word", send: "Send",
+    voteTitle: "All words said:", voteWho: "Who is the impostor?",
+    voted: " ✔", voteWait: "Waiting for the other votes...",
+    groupWins: "🎉 The group found the impostor!", impostorWins: "😈 The impostor wins!",
+    tieMsg: "Votes are tied.", accused: "Accused", impostorWas: "The impostor was",
+    words: "The words:", impTag: " 🕵️", again: "Play again", againWait: "Waiting for the host...",
+    needName: "Enter a nickname!", needCode: "Enter a code!", badCode: "Invalid code.",
+    started: "The game has already started.", full: "Game is full (10 max).",
+    nameTaken: "This nickname is taken.", min3: "At least 3 players needed.",
+    lost: "Connection lost. Reload the page."
   }
 };
-const LANG_INDEX = { fr: 0, he: 1, en: 2 };
 
+const LANG_INDEX = { fr: 0, he: 1, en: 2 };
 let currentLang = localStorage.getItem("lang") || "fr";
-let state = null;
+let lastState = null;
 let ws = null;
 
 function t(k) { return T[currentLang][k] || k; }
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "'" }[c]));
 }
-function wordOf(arr) { return arr ? arr[LANG_INDEX[currentLang]] : ""; }
+function wordOf(w) {
+  if (!w) return "";
+  return Array.isArray(w) ? w[LANG_INDEX[currentLang]] : w;
+}
+function $(id) { return document.getElementById(id); }
 
 function setLang(l) {
   currentLang = l;
   localStorage.setItem("lang", l);
   document.documentElement.lang = l;
-  document.getElementById("root").setAttribute("dir", l === "he" ? "rtl" : "ltr");
-  document.querySelectorAll("[data-t]").forEach(e => e.textContent = t(e.dataset.t));
-  document.querySelectorAll("[data-p]").forEach(e => e.placeholder = t(e.dataset.p));
-  ["fr", "he", "en"].forEach(x => document.getElementById("lang-" + x).classList.toggle("on", x === l));
-  if (state) render();
-}
-
-function setError(msg) {
-  const el = document.getElementById("error");
-  el.textContent = msg || "";
-  if (msg) setTimeout(() => { el.textContent = ""; }, 4000);
+  document.body.dir = l === "he" ? "rtl" : "ltr";
+  ["fr", "he", "en"].forEach(x => $("lang-" + x).classList.toggle("on", x === l));
+  $("name").placeholder = t("pseudo");
+  $("createBtn").textContent = t("create");
+  $("codeInput").placeholder = t("code");
+  $("joinBtn").textContent = t("join");
+  $("codeLabel").textContent = t("codeIs");
+  $("playersTitle").textContent = t("players");
+  $("startBtn").textContent = t("start");
+  $("waitMsg").textContent = t("waitHost");
+  $("wordLabel").textContent = t("yourWord");
+  $("gamePlayersTitle").textContent = t("players");
+  $("cluesTitle").textContent = t("clues");
+  $("clueInput").placeholder = t("cluePh");
+  $("sendBtn").textContent = t("send");
+  $("voteWordLabel").textContent = t("yourWord");
+  $("voteTitle").textContent = t("voteTitle");
+  $("voteWho").textContent = t("voteWho");
+  $("voteWait").textContent = t("voteWait");
+  $("resultWordsTitle").textContent = t("words");
+  $("againBtn").textContent = t("again");
+  $("againWait").textContent = t("againWait");
+  if (lastState) render(lastState);
 }
 
 function show(id) {
-  ["home", "lobby", "game", "voting", "result"].forEach(x => document.getElementById(x).classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
+  ["home", "lobby", "game", "voting", "result"].forEach(x => $(x).classList.add("hidden"));
+  $(id).classList.remove("hidden");
 }
 
-// ---- Connexion WebSocket ----
+function setError(key) {
+  $("error").textContent = key ? t(key) : "";
+  if (key) setTimeout(() => ($("error").textContent = ""), 4000);
+}
+
 function connect() {
   const proto = location.protocol === "https:" ? "wss://" : "ws://";
   ws = new WebSocket(proto + location.host);
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.type === "error") { setError(t(msg.key)); return; }
-    if (msg.type === "state") { state = msg; render(); }
+    if (msg.type === "error") return setError(msg.key);
+    if (msg.type === "state") { lastState = msg; render(msg); }
   };
-  ws.onclose = () => { if (state) setError(t("disconnected")); };
+  ws.onclose = () => { $("error").textContent = t("lost"); };
 }
+
 function sendMsg(obj) {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
 }
 
-// ---- Actions ----
 function getName() {
-  const n = document.getElementById("name").value.trim();
-  if (!n) { setError(t("needName")); return null; }
+  const n = $("name").value.trim();
+  if (!n) { setError("needName"); return null; }
   return n;
 }
 function createRoom() {
@@ -210,25 +231,21 @@ function createRoom() {
 }
 function joinRoom() {
   const name = getName(); if (!name) return;
-  const code = document.getElementById("codeInput").value.trim().toUpperCase();
-  if (!code) { setError(t("needCode")); return; }
+  const code = $("codeInput").value.trim().toUpperCase();
+  if (!code) { setError("needCode"); return; }
   sendMsg({ type: "join", name, code });
 }
 function startGame() { sendMsg({ type: "start" }); }
 function sendClue() {
-  const input = document.getElementById("clueInput");
-  const word = input.value.trim();
+  const word = $("clueInput").value.trim();
   if (!word) return;
   sendMsg({ type: "clue", word });
-  input.value = "";
+  $("clueInput").value = "";
 }
-function vote(id) { sendMsg({ type: "vote", target: id }); }
+function vote(target) { sendMsg({ type: "vote", target }); }
 function again() { sendMsg({ type: "again" }); }
 
-// ---- Affichage ----
-function render() {
-  const s = state;
-  if (!s) return;
+function render(s) {
   if (s.phase === "lobby") renderLobby(s);
   else if (s.phase === "clues") renderGame(s);
   else if (s.phase === "voting") renderVoting(s);
@@ -237,36 +254,33 @@ function render() {
 
 function renderLobby(s) {
   show("lobby");
-  document.getElementById("roomCode").textContent = s.code;
-  document.getElementById("playersList").innerHTML = s.players.map(p =>
+  $("roomCode").textContent = s.code;
+  $("playersList").innerHTML = s.players.map(p =>
     '<div class="player">' + esc(p.name) + (p.id === s.hostId ? " 👑" : "") + "</div>").join("");
   const isHost = s.hostId === s.youId;
-  document.getElementById("startBtn").classList.toggle("hidden", !isHost);
-  document.getElementById("waitMsg").classList.toggle("hidden", isHost);
+  $("startBtn").classList.toggle("hidden", !isHost);
+  $("waitMsg").classList.toggle("hidden", isHost);
 }
 
 function renderGame(s) {
   show("game");
-  document.getElementById("myWord").textContent = wordOf(s.myWord);
-  document.getElementById("roundInfo").textContent = t("round") + " " + s.round + "/2";
-  const turnPlayer = s.players[s.turnIndex];
-  document.getElementById("gamePlayers").innerHTML = s.players.map((p, i) => {
-    const active = i === s.turnIndex;
-    const mine = p.id === s.youId;
-    const tag = active ? (mine ? t("yourTurn") : t("herTurn")) : "";
-    const clues = p.clues.length ? " : <b>" + p.clues.map(esc).join(" , ") + "</b>" : "";
-    return '<div class="player ' + (active ? "active" : "") + '">' + esc(p.name) + tag + clues + "</div>";
-  }).join("");
-  document.getElementById("turnArea").classList.toggle("hidden", !(turnPlayer && turnPlayer.id === s.youId));
+  $("myWord").textContent = wordOf(s.myWord);
+  $("roundInfo").textContent = t("round") + " " + s.round + "/2";
+  $("gamePlayers").innerHTML = s.players.map((p, i) =>
+    '<div class="player ' + (i === s.turnIndex ? "active" : "") + '">' + esc(p.name) + (i === s.turnIndex ? t("turn") : "") + "</div>").join("");
+  $("clues").innerHTML = s.players.filter(p => p.clues.length).map(p =>
+    '<div class="clue"><b>' + esc(p.name) + " :</b> " + p.clues.map(esc).join(" , ") + "</div>").join("");
+  const myTurn = s.players[s.turnIndex] && s.players[s.turnIndex].id === s.youId;
+  $("turnArea").classList.toggle("hidden", !myTurn);
 }
 
 function renderVoting(s) {
   show("voting");
-  document.getElementById("myWord2").textContent = wordOf(s.myWord);
-  document.getElementById("cluesList").innerHTML = s.players.map(p =>
+  $("voteWord").textContent = wordOf(s.myWord);
+  $("allClues").innerHTML = s.players.map(p =>
     '<div class="clue"><b>' + esc(p.name) + " :</b> " + p.clues.map(esc).join(" , ") + "</div>").join("");
   const iVoted = !!s.myVote;
-  const box = document.getElementById("voteButtons");
+  const box = $("voteButtons");
   box.innerHTML = "";
   s.players.forEach(p => {
     if (p.id === s.youId) return;
@@ -277,13 +291,13 @@ function renderVoting(s) {
     b.onclick = () => vote(p.id);
     box.appendChild(b);
   });
-  document.getElementById("voteWait").classList.toggle("hidden", !iVoted);
+  $("voteWait").classList.toggle("hidden", !iVoted);
 }
 
 function renderResult(s) {
   show("result");
   const r = s.result;
-  const title = document.getElementById("resultTitle");
+  const title = $("resultTitle");
   if (r.tie) {
     title.textContent = t("tieMsg") + " " + t("impostorWins");
     title.className = "result-title lose";
@@ -297,12 +311,12 @@ function renderResult(s) {
   let detail = "";
   if (!r.tie) detail += t("accused") + " : " + esc(r.accusedName) + "<br>";
   detail += t("impostorWas") + " : " + esc(r.impostorName);
-  document.getElementById("resultDetail").innerHTML = detail;
-  document.getElementById("resultPlayers").innerHTML = s.players.map(p =>
+  $("resultDetail").innerHTML = detail;
+  $("resultPlayers").innerHTML = s.players.map(p =>
     '<div class="player">' + esc(p.name) + (p.isImpostor ? t("impTag") : "") + " : <b>" + esc(wordOf(p.word)) + "</b></div>").join("");
   const isHost = s.hostId === s.youId;
-  document.getElementById("againBtn").classList.toggle("hidden", !isHost);
-  document.getElementById("againWait").classList.toggle("hidden", isHost);
+  $("againBtn").classList.toggle("hidden", !isHost);
+  $("againWait").classList.toggle("hidden", isHost);
 }
 
 setLang(currentLang);
