@@ -172,7 +172,7 @@ function leaveRoom() {
     document.getElementById('waitMsg').classList.toggle('hidden', isHost && data.players.length >= 3);
   });
 
-  socket.on('gameUpdate', (data) => {
+ socket.on('gameUpdate', (data) => {
     if (data.phase === 'clues') {
       show('game');
       document.getElementById('myWord').textContent = data.word;
@@ -187,6 +187,34 @@ function leaveRoom() {
         data.players.map(p => '<button onclick="vote(\'' + p.id + '\')">' + p.name + '</button>').join('');
     }
   });
+
+socket.on('state', (data) => {
+  if (data.phase === 'result') {
+    show('result');
+    const impostor = data.players.find(p => p.isImpostor);
+    const accused = data.players.find(p => p.id === data.result.accusedId);
+    
+    document.getElementById('resultTitle').textContent = 
+      data.result.groupWins ? '✅ Les civils ont gagné !' : '❌ L\'imposteur a gagné !';
+    
+    document.getElementById('resultMessage').innerHTML = 
+      '<p><b>Imposteur :</b> ' + impostor.name + '</p>' +
+      '<p><b>Mot commun :</b> ' + data.players[0].word + '</p>' +
+      '<p><b>Mot imposteur :</b> ' + impostor.word + '</p>';
+    
+    document.getElementById('resultVotes').innerHTML = 
+      '<p><b>Éliminé :</b> ' + (accused ? accused.name : 'Égalité !') + '</p>';
+  }
+});
+
+function playAgain() {
+  socket.emit('again');
+  show('lobby');
+}
+
+function leaveRoom() {
+  location.reload();
+}
 
   function vote(playerId) {
     socket.emit('vote', { votedId: playerId });
