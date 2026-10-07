@@ -19,7 +19,7 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-// Chaque mot : [français, hébreu, anglais]
+// [français, hébreu, anglais]
 const PAIRS = [
   [["Foot", "כדורגל", "Soccer"], ["Basket", "כדורסל", "Basketball"]],
   [["Chat", "חתול", "Cat"], ["Chien", "כלב", "Dog"]],
@@ -36,7 +36,7 @@ const PAIRS = [
   [["Lion", "אריה", "Lion"], ["Tigre", "נמר", "Tiger"]],
   [["Montagne", "הר", "Mountain"], ["Colline", "גבעה", "Hill"]],
   [["Fraise", "תות", "Strawberry"], ["Framboise", "פטל", "Raspberry"]],
-  [["Train", "רכבת", "Train"], ["Métro", "metro", "Subway"]],
+  [["Train", "רכבת", "Train"], ["Métro", "מטרו", "Subway"]],
   [["Pluie", "גשם", "Rain"], ["Neige", "שלג", "Snow"]],
   [["Chocolat", "שוקולד", "Chocolate"], ["Caramel", "קרמל", "Caramel"]],
   [["Ordinateur", "מחשב", "Computer"], ["Tablette", "טאבלט", "Tablet"]],
@@ -48,6 +48,7 @@ const PAIRS = [
 ];
 
 const rooms = {};
+let nextId = 1;
 
 function makeCode() {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -63,12 +64,6 @@ function send(ws, data) {
   if (ws.readyState === 1) ws.send(JSON.stringify(data));
 }
 
-function broadcast(room) {
-  for (const p of room.players) {
-    send(p.ws, stateFor(room, p));
-  }
-}
-
 function stateFor(room, me) {
   return {
     type: "state",
@@ -77,6 +72,7 @@ function stateFor(room, me) {
     youId: me.id,
     hostId: room.hostId,
     myWord: room.phase !== "lobby" ? me.word : null,
+    myVote: room.votes[me.id] || null,
     turnIndex: room.turnIndex,
     round: room.round,
     players: room.players.map((p) => ({
@@ -87,9 +83,12 @@ function stateFor(room, me) {
       word: room.phase === "result" ? p.word : undefined,
       isImpostor: room.phase === "result" ? p.isImpostor : undefined,
     })),
-    myVote: room.votes[me.id] || null,
     result: room.phase === "result" ? room.result : null,
   };
+}
+
+function broadcast(room) {
+  for (const p of room.players) send(p.ws, stateFor(room, p));
 }
 
 function startGame(room) {
@@ -100,7 +99,7 @@ function startGame(room) {
   const impostorIdx = Math.floor(Math.random() * room.players.length);
   room.players.forEach((p, i) => {
     p.isImpostor = i === impostorIdx;
-    p.word = p.isImpostor ? odd : common; // tableau [fr, he, en]
+    p.word = p.isImpostor ? odd : common;
     p.clues = [];
   });
   room.votes = {};
@@ -154,15 +153,9 @@ function removePlayer(ws) {
     room.players.forEach((p) => (p.clues = []));
   } else if (room.phase === "clues") {
     if (room.turnIndex >= room.players.length) room.turnIndex = 0;
-  } else if (room.phase === "voting") {
-    delete room.votes[leaving.id];
-    for (const k in room.votes) if (room.votes[k] === leaving.id) delete room.votes[k];
-    if (Object.keys(room.votes).length === room.players.length) endVoting(room);
   }
   broadcast(room);
 }
-
-let nextId = 1;
 
 wss.on("connection", (ws) => {
   ws.on("message", (raw) => {
