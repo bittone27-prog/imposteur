@@ -7,58 +7,133 @@
 <style>
   * { box-sizing: border-box; }
   body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: radial-gradient(circle at top, #2b1055 0%, #12082b 55%, #0a0618 100%);
-    background-attachment: fixed;
+    font-family: 'Arial Black', Arial, sans-serif;
+    background: conic-gradient(from 45deg, #667eea 0deg, #764ba2 90deg, #f093fb 180deg, #667eea 270deg);
+    background-size: 400% 400%;
     color: #fff; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh;
+    animation: gradShift 8s ease infinite;
   }
-  .app { width: 100%; max-width: 480px; }
-  h1 { text-align: center; font-weight: 900; letter-spacing: 1px; text-shadow: 0 4px 20px rgba(168,85,247,.6); }
-  .card {
-    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
-    backdrop-filter: blur(8px); border-radius: 20px; padding: 20px; margin-bottom: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.35); animation: pop .35s ease;
+  @keyframes gradShift {
+    0%, 100% { filter: hue-rotate(0deg); }
+    50% { filter: hue-rotate(10deg); }
   }
-  @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
-  input, select {
-    width: 100%; padding: 14px; margin: 6px 0; border-radius: 14px; border: 2px solid transparent;
-    background: rgba(255,255,255,.95); color: #222; font-size: 16px; outline: none;
+  
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(255,255,255,.1) 1px, transparent 1px),
+      repeating-conic-gradient(from 0deg at 50% 50%, #667eea 0deg 45deg, #764ba2 45deg 90deg);
+    background-size: 60px 60px, 100% 100%;
+    pointer-events: none;
+    opacity: 0.3;
+    z-index: -1;
   }
-  input:focus, select:focus { border-color: #a855f7; }
-  button {
-    width: 100%; padding: 14px; margin: 6px 0; border: none; border-radius: 16px;
-    background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-size: 17px; font-weight: 700;
-    cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 5px 0 #0f7a38;
-  }
-  button:hover { transform: translateY(-2px); }
-  button:active { transform: translateY(3px); box-shadow: 0 2px 0 #0f7a38; }
-  button.secondary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 5px 0 #4c1d95; }
-  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 5px 0 #7f1d1d; }
-  button.settings { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 5px 0 #92400e; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  .vote-btn { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 5px 0 #1e293b; }
-  .vote-btn.voted { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 5px 0 #92400e; }
-  .lang { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
-  .lang button { width: auto; padding: 6px 14px; font-size: 14px; background: #3b3560; box-shadow: none; }
-  .lang button.active { background: #a855f7; }
-  .hidden { display: none !important; }
-  .clue { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
-  .players li { padding: 6px 0; list-style: none; font-size: 18px; }
-  .players { padding: 0; }
-  .timer { text-align: center; font-size: 28px; font-weight: 800; color: #fbbf24; margin: 8px 0; }
-  .error { color: #ff7b7b; text-align: center; min-height: 20px; }
-  .code { text-align: center; font-size: 38px; letter-spacing: 8px; font-weight: 900; color: #fbbf24; text-shadow: 0 0 18px rgba(251,191,36,.5); }
 
-  /* Réglages */
-  .settings-panel { background: rgba(0,0,0,.25); border-radius: 14px; padding: 12px; margin: 8px 0; }
-  .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
+  .app { width: 100%; max-width: 480px; z-index: 1; }
+  
+  h1 {
+    text-align: center;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 
+      -3px -3px 0 #000,
+      3px -3px 0 #000,
+      -3px 3px 0 #000,
+      3px 3px 0 #000,
+      -5px 0 0 #ff006e,
+      5px 0 0 #00d9ff,
+      0 -5px 0 #ffbe0b;
+    margin: 20px 0;
+    animation: titleBounce 0.6s ease;
+  }
+  @keyframes titleBounce { 0% { transform: scale(0.8); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+  .lang { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
+  .lang button { width: auto; padding: 6px 14px; font-size: 14px; background: rgba(0,0,0,.4); box-shadow: none; border: 2px solid #fff; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; }
+  .lang button.active { background: #fff; color: #667eea; }
+
+  .card {
+    background: rgba(0,0,0,.25);
+    border: 3px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    animation: slideIn 0.4s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  input, select {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border-radius: 14px;
+    border: 2px solid #fff;
+    background: rgba(255,255,255,.9);
+    color: #222;
+    font-size: 16px;
+    font-weight: 600;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: #ffbe0b; box-shadow: 0 0 15px rgba(255,190,11,.5); }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  button:hover { transform: translateY(-3px); }
+  button:active { transform: translateY(2px); }
+
+  button {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 6px 0 #0f7a38, 0 8px 15px rgba(0,0,0,.3);
+  }
+  button.secondary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #4c1d95, 0 8px 15px rgba(0,0,0,.3); }
+  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 6px 0 #7f1d1d, 0 8px 15px rgba(0,0,0,.3); }
+  button.settings { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 0 #92400e, 0 8px 15px rgba(0,0,0,.3); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .vote-btn {
+    background: linear-gradient(135deg, #475569, #334155);
+    box-shadow: 0 6px 0 #1e293b, 0 8px 15px rgba(0,0,0,.3);
+    margin: 6px 0;
+    width: 100%;
+  }
+  .vote-btn.voted { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 6px 0 #92400e, 0 8px 15px rgba(0,0,0,.3); }
+
+  .error { color: #ff6b6b; text-align: center; min-height: 20px; font-weight: bold; }
+  .code { text-align: center; font-size: 48px; letter-spacing: 12px; font-weight: 900; color: #ffbe0b; text-shadow: 0 0 25px rgba(251,191,36,.7), -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000; }
+  .hidden { display: none !important; }
+
+  .clue { padding: 10px; border-bottom: 2px solid rgba(255,255,255,.15); background: rgba(255,255,255,.05); margin: 4px 0; border-radius: 8px; }
+  .players li { padding: 8px; list-style: none; font-size: 18px; font-weight: 600; }
+  .players { padding: 0; }
+  .timer { text-align: center; font-size: 42px; font-weight: 900; color: #ffbe0b; margin: 12px 0; text-shadow: 0 0 20px rgba(251,191,36,.7); }
+
+  .settings-panel { background: rgba(0,0,0,.25); border-radius: 14px; padding: 12px; margin: 8px 0; border: 2px solid rgba(255,255,255,.1); }
+  .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-weight: 600; }
   .switch { position: relative; width: 56px; height: 30px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: #475569; border-radius: 30px; cursor: pointer; transition: .25s; }
-  .slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 4px; top: 4px; background: #fff; border-radius: 50%; transition: .25s; }
+  .slider { position: absolute; inset: 0; background: #475569; border-radius: 30px; cursor: pointer; transition: .25s; border: 2px solid #fff; }
+  .slider:before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 2px; background: #fff; border-radius: 50%; transition: .25s; }
   .switch input:checked + .slider { background: #22c55e; }
   .switch input:checked + .slider:before { transform: translateX(26px); }
-  .setting-state { text-align: center; opacity: .8; font-size: 14px; }
 
   /* Carte 3D */
   .scene { perspective: 1000px; width: 220px; height: 300px; margin: 15px auto; }
@@ -73,18 +148,20 @@
     position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px;
     box-shadow: 0 15px 40px rgba(0,0,0,.5);
+    border: 4px solid rgba(255,255,255,.3);
   }
   .face.back {
-    background: repeating-linear-gradient(45deg, #4c1d95, #4c1d95 12px, #5b21b6 12px, #5b21b6 24px);
-    border: 4px solid #a855f7; box-shadow: 0 0 30px rgba(168,85,247,.6), 0 15px 40px rgba(0,0,0,.5);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: 4px solid #ffbe0b;
   }
-  .face.back span { font-size: 70px; opacity: .6; }
-  .face.front { background: linear-gradient(160deg, #1e1b4b, #312e81); border: 4px solid #fbbf24; transform: rotateY(180deg); }
-  .face.front .w { font-size: 30px; font-weight: 900; word-break: break-word; }
-  .face.front .r { margin-top: 14px; font-size: 22px; font-weight: 900; padding: 6px 14px; border-radius: 12px; }
-  .r.innocent { background: #16a34a; }
-  .r.impostor { background: #dc2626; }
-  .tap-hint { text-align: center; opacity: .7; font-size: 14px; }
+  .face.back span { font-size: 70px; opacity: .8; }
+  .face.front { background: linear-gradient(160deg, #667eea, #764ba2); border: 4px solid #ffbe0b; transform: rotateY(180deg); }
+  .face.front .w { font-size: 32px; font-weight: 900; word-break: break-word; }
+  .face.front .r { margin-top: 14px; font-size: 20px; font-weight: 900; padding: 8px 16px; border-radius: 12px; }
+  .r.innocent { background: #22c55e; }
+  .r.impostor { background: #ef4444; }
+
+  p { font-weight: 600; }
 </style>
 </head>
 <body>
@@ -95,7 +172,7 @@
     <button id="lang-he" onclick="setLang('he')">עב</button>
   </div>
 
-  <h1>🕵️ <span data-t="title"></span></h1>
+  <h1 data-t="title"></h1>
   <div class="error" id="error"></div>
 
   <!-- ACCUEIL -->
@@ -127,7 +204,6 @@
       </div>
     </div>
 
-    <p id="settingState" class="setting-state hidden"></p>
     <button id="startBtn" onclick="startGame()" data-t="start"></button>
     <p id="waitHost" class="hidden" data-t="waitHost"></p>
     <button class="danger" onclick="leave()" data-t="leave"></button>
@@ -144,8 +220,8 @@
         </div>
       </div>
     </div>
-    <p class="tap-hint" data-t="tapCard"></p>
-    <p id="turnInfo"></p>
+    <p style="text-align:center; opacity:.8;" data-t="tapCard"></p>
+    <p id="turnInfo" style="text-align:center;"></p>
     <div id="clueBox">
       <input id="clueInput" maxlength="24" data-p="clue">
       <button onclick="sendClue()" data-t="send"></button>
@@ -155,7 +231,7 @@
 
   <!-- VOTE -->
   <div id="voting" class="card hidden">
-    <p data-t="voteTitle"></p>
+    <p style="text-align:center;" data-t="voteTitle"></p>
     <div class="timer" id="timer"></div>
     <div id="voteButtons"></div>
     <div id="cluesList2"></div>
@@ -243,7 +319,6 @@ function setLang(l) {
     sel.appendChild(o);
   });
   sel.value = cur;
-  updateSettingState();
   if (state) renderGame(state);
 }
 
@@ -281,10 +356,6 @@ function toggleSettings() {
 }
 function setSetting() {
   socket.emit("setSettings", { showRole: document.getElementById("showRoleToggle").checked });
-}
-function updateSettingState() {
-  const el = document.getElementById("settingState");
-  el.textContent = showRole ? t("roleOn") : t("roleOff");
 }
 
 function flipCard() {
@@ -333,7 +404,6 @@ function renderGame(d) {
   if (d.phase === "clues") {
     show("clues");
 
-    // Carte : on la recache seulement au début d'une nouvelle manche
     const key = d.word + "|" + d.role;
     if (key !== lastRoundKey && d.clues.length === 0) {
       document.getElementById("flipCard").classList.remove("flipped");
@@ -396,9 +466,7 @@ socket.on("roomUpdate", (d) => {
   document.getElementById("waitHost").classList.toggle("hidden", isHost);
   document.getElementById("category").value = d.selectedCategory;
   document.getElementById("showRoleToggle").checked = showRole;
-  const st = document.getElementById("settingState");
-  st.classList.toggle("hidden", isHost);
-  updateSettingState();
+  if (state) renderGame(state);
 });
 
 socket.on("gameUpdate", (d) => {
