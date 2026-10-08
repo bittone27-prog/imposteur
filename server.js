@@ -17,16 +17,87 @@ const io = new Server(server, { cors: { origin: "*" } });
 const rooms = {};
 
 const PAIRS = {
-  sport: [["Football", "Basketball"], ["Tennis", "Ping-pong"], ["Natation", "Plongeon"]],
-  celebrite: [["Messi", "Ronaldo"], ["Beyoncé", "Rihanna"], ["Einstein", "Newton"]],
-  film: [["Titanic", "Avatar"], ["Shrek", "Madagascar"], ["Batman", "Superman"]],
-  anime: [["Naruto", "Bleach"], ["One Piece", "Dragon Ball"], ["Pikachu", "Evoli"]],
-  musique: [["Guitare", "Piano"], ["Rap", "Rock"], ["Violon", "Violoncelle"]],
-  nature: [["Montagne", "Plage"], ["Forêt", "Désert"], ["Soleil", "Lune"]],
-  nourriture: [["Pizza", "Burger"], ["Pâtes", "Riz"], ["Chocolat", "Vanille"]],
-  animaux: [["Chat", "Chien"], ["Lion", "Tigre"], ["Dauphin", "Requin"]]
+  sport: [
+    ["Football", "Basketball"], ["Tennis", "Ping-pong"], ["Natation", "Plongeon"],
+    ["Rugby", "Football américain"], ["Golf", "Minigolf"], ["Ski", "Snowboard"],
+    ["Boxe", "Karaté"], ["Judo", "Lutte"], ["Volley-ball", "Beach-volley"],
+    ["Handball", "Water-polo"], ["Cyclisme", "Moto"], ["Marathon", "Sprint"],
+    ["Escrime", "Tir à l'arc"], ["Surf", "Planche à voile"], ["Hockey", "Curling"],
+    ["Badminton", "Squash"], ["Escalade", "Randonnée"], ["Gymnastique", "Danse"],
+    ["Skateboard", "Roller"], ["Baseball", "Cricket"], ["Équitation", "Polo"],
+    ["Pétanque", "Bowling"], ["Triathlon", "Pentathlon"], ["Formule 1", "Rallye"]
+  ],
+  celebrite: [
+    ["Messi", "Ronaldo"], ["Beyoncé", "Rihanna"], ["Einstein", "Newton"],
+    ["Napoléon", "César"], ["Michael Jackson", "Elvis Presley"], ["Picasso", "Van Gogh"],
+    ["Mozart", "Beethoven"], ["Obama", "Trump"], ["Shakespeare", "Molière"],
+    ["Zidane", "Mbappé"], ["Brad Pitt", "Leonardo DiCaprio"], ["Taylor Swift", "Ariana Grande"],
+    ["Elon Musk", "Bill Gates"], ["Marilyn Monroe", "Audrey Hepburn"], ["Charlie Chaplin", "Louis de Funès"],
+    ["Cléopâtre", "Marie-Antoinette"], ["Jules Verne", "Victor Hugo"], ["Usain Bolt", "Carl Lewis"],
+    ["Drake", "Eminem"], ["Johnny Depp", "Tom Cruise"], ["Pelé", "Maradona"],
+    ["Gandhi", "Mandela"], ["Spielberg", "Tarantino"], ["Rihanna", "Lady Gaga"]
+  ],
+  film: [
+    ["Titanic", "Avatar"], ["Shrek", "Madagascar"], ["Batman", "Superman"],
+    ["Harry Potter", "Le Seigneur des Anneaux"], ["Star Wars", "Star Trek"], ["Toy Story", "Cars"],
+    ["Le Roi Lion", "Bambi"], ["La Reine des Neiges", "Raiponce"], ["Jurassic Park", "King Kong"],
+    ["Avengers", "Justice League"], ["Matrix", "Inception"], ["Les Minions", "Moi, moche et méchant"],
+    ["Spider-Man", "Iron Man"], ["Fast & Furious", "Taxi"], ["Pirates des Caraïbes", "Indiana Jones"],
+    ["Nemo", "Le Monde de Dory"], ["Astérix", "Tintin"], ["Rocky", "Creed"],
+    ["Les Dents de la mer", "Alien"], ["Kung Fu Panda", "Mulan"], ["Hunger Games", "Divergente"],
+    ["Joker", "Venom"], ["Cendrillon", "Blanche-Neige"], ["Ratatouille", "Coco"]
+  ],
+  anime: [
+    ["Naruto", "Bleach"], ["One Piece", "Dragon Ball"], ["Pikachu", "Evoli"],
+    ["Death Note", "Code Geass"], ["Attack on Titan", "Demon Slayer"], ["My Hero Academia", "One Punch Man"],
+    ["Sailor Moon", "Card Captor Sakura"], ["Fullmetal Alchemist", "Hunter x Hunter"], ["Totoro", "Chihiro"],
+    ["Goku", "Vegeta"], ["Luffy", "Zoro"], ["Tokyo Ghoul", "Jujutsu Kaisen"],
+    ["Pokémon", "Digimon"], ["Detective Conan", "Death Parade"], ["Sasuke", "Itachi"],
+    ["Fairy Tail", "Black Clover"], ["Haikyu", "Kuroko no Basket"], ["Cowboy Bebop", "Trigun"],
+    ["Evangelion", "Gundam"], ["Spy x Family", "Kaguya-sama"], ["Dr. Stone", "Fire Force"],
+    ["Saint Seiya", "Les Chevaliers du Zodiaque"], ["Yu-Gi-Oh", "Beyblade"], ["Chainsaw Man", "Dorohedoro"]
+  ],
+  musique: [
+    ["Guitare", "Piano"], ["Rap", "Rock"], ["Violon", "Violoncelle"],
+    ["Batterie", "Tambour"], ["Flûte", "Clarinette"], ["Saxophone", "Trompette"],
+    ["Opéra", "Comédie musicale"], ["Jazz", "Blues"], ["Reggae", "Salsa"],
+    ["Harpe", "Guitare"], ["DJ", "Chanteur"], ["Concert", "Festival"],
+    ["Karaoké", "Chorale"], ["Basse", "Contrebasse"], ["Accordéon", "Harmonica"],
+    ["Techno", "House"], ["Pop", "Disco"], ["Country", "Folk"],
+    ["Ukulélé", "Banjo"], ["Micro", "Casque"], ["Vinyle", "CD"],
+    ["Orchestre", "Fanfare"], ["Xylophone", "Marimba"], ["Cornemuse", "Flûte de pan"]
+  ],
+  nature: [
+    ["Montagne", "Plage"], ["Forêt", "Désert"], ["Soleil", "Lune"],
+    ["Rivière", "Lac"], ["Volcan", "Geyser"], ["Pluie", "Neige"],
+    ["Orage", "Tornade"], ["Cascade", "Fontaine"], ["Île", "Presqu'île"],
+    ["Grotte", "Canyon"], ["Prairie", "Savane"], ["Jungle", "Forêt tropicale"],
+    ["Arc-en-ciel", "Aurore boréale"], ["Océan", "Mer"], ["Glacier", "Iceberg"],
+    ["Marécage", "Étang"], ["Falaise", "Colline"], ["Étoile", "Comète"],
+    ["Rose", "Tulipe"], ["Chêne", "Sapin"], ["Cactus", "Palmier"],
+    ["Brouillard", "Nuage"], ["Dune", "Oasis"], ["Corail", "Algue"]
+  ],
+  nourriture: [
+    ["Pizza", "Burger"], ["Pâtes", "Riz"], ["Chocolat", "Vanille"],
+    ["Sushi", "Maki"], ["Croissant", "Pain au chocolat"], ["Fromage", "Beurre"],
+    ["Pomme", "Poire"], ["Fraise", "Framboise"], ["Café", "Thé"],
+    ["Glace", "Sorbet"], ["Crêpe", "Gaufre"], ["Tacos", "Kebab"],
+    ["Steak", "Poulet"], ["Salade", "Soupe"], ["Miel", "Confiture"],
+    ["Banane", "Mangue"], ["Pastèque", "Melon"], ["Gâteau", "Tarte"],
+    ["Nutella", "Beurre de cacahuète"], ["Coca", "Fanta"], ["Frites", "Chips"],
+    ["Couscous", "Paella"], ["Bonbon", "Sucette"], ["Œuf", "Omelette"]
+  ],
+  animaux: [
+    ["Chat", "Chien"], ["Lion", "Tigre"], ["Dauphin", "Requin"],
+    ["Cheval", "Âne"], ["Loup", "Renard"], ["Aigle", "Faucon"],
+    ["Éléphant", "Rhinocéros"], ["Girafe", "Zèbre"], ["Singe", "Gorille"],
+    ["Serpent", "Lézard"], ["Grenouille", "Crapaud"], ["Papillon", "Abeille"],
+    ["Ours", "Panda"], ["Pingouin", "Manchot"], ["Hibou", "Chouette"],
+    ["Crocodile", "Alligator"], ["Lapin", "Lièvre"], ["Vache", "Taureau"],
+    ["Baleine", "Orque"], ["Perroquet", "Corbeau"], ["Araignée", "Scorpion"],
+    ["Mouton", "Chèvre"], ["Tortue", "Escargot"], ["Pieuvre", "Calamar"]
+  ]
 };
-
 function makeCode() {
   const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   let code;
