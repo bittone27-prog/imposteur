@@ -67,73 +67,83 @@
     box-shadow: 0 8px 32px rgba(0,0,0,.3);
     animation: slideIn 0.4s ease;
   }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
+  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+  
   input, select {
-    width: 100%;
-    padding: 14px;
-    margin: 8px 0;
-    border-radius: 14px;
-    border: 2px solid #fff;
-    background: rgba(255,255,255,.9);
-    color: #222;
-    font-size: 16px;
-    font-weight: 600;
-    outline: none;
+    width: 100%; padding: 14px; margin: 6px 0; border-radius: 14px; border: 2px solid transparent;
+    background: rgba(255,255,255,.95); color: #222; font-size: 16px; outline: none; font-weight: bold;
   }
-  input:focus, select:focus { border-color: #ffbe0b; box-shadow: 0 0 15px rgba(255,190,11,.5); }
-
+  input:focus, select:focus { border-color: #667eea; }
+  
   button {
-    width: 100%;
-    padding: 14px;
-    margin: 8px 0;
-    border: none;
-    border-radius: 16px;
-    color: #fff;
-    font-size: 17px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    width: 100%; padding: 14px; margin: 6px 0; border: none; border-radius: 16px;
+    background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-size: 17px; font-weight: 900;
+    cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 6px 0 #0f7a38;
+    text-transform: uppercase; letter-spacing: 1px;
   }
-  button:hover { transform: translateY(-3px); }
-  button:active { transform: translateY(2px); }
-
-  button {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    box-shadow: 0 6px 0 #0f7a38, 0 8px 15px rgba(0,0,0,.3);
-  }
-  button.secondary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #4c1d95, 0 8px 15px rgba(0,0,0,.3); }
-  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 6px 0 #7f1d1d, 0 8px 15px rgba(0,0,0,.3); }
-  button.settings { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 0 #92400e, 0 8px 15px rgba(0,0,0,.3); }
+  button:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #0f7a38; }
+  button:active { transform: translateY(3px); box-shadow: 0 2px 0 #0f7a38; }
+  button.secondary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #4c1d95; }
+  button.secondary:hover { box-shadow: 0 8px 0 #4c1d95; }
+  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 6px 0 #7f1d1d; }
+  button.danger:hover { box-shadow: 0 8px 0 #7f1d1d; }
+  button.settings { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 0 #92400e; }
+  button.settings:hover { box-shadow: 0 8px 0 #92400e; }
   button:disabled { opacity: .5; cursor: not-allowed; }
-
-  .vote-btn {
-    background: linear-gradient(135deg, #475569, #334155);
-    box-shadow: 0 6px 0 #1e293b, 0 8px 15px rgba(0,0,0,.3);
-    margin: 6px 0;
-    width: 100%;
-  }
-  .vote-btn.voted { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 6px 0 #92400e, 0 8px 15px rgba(0,0,0,.3); }
-
-  .error { color: #ff6b6b; text-align: center; min-height: 20px; font-weight: bold; }
-  .code { text-align: center; font-size: 48px; letter-spacing: 12px; font-weight: 900; color: #ffbe0b; text-shadow: 0 0 25px rgba(251,191,36,.7), -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000; }
+  
+  .vote-btn { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 6px 0 #1e293b; text-transform: none; letter-spacing: 0; }
+  .vote-btn:hover { box-shadow: 0 8px 0 #1e293b; }
+  .vote-btn.voted { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 6px 0 #92400e; }
+  
   .hidden { display: none !important; }
-
-  .clue { padding: 10px; border-bottom: 2px solid rgba(255,255,255,.15); background: rgba(255,255,255,.05); margin: 4px 0; border-radius: 8px; }
-  .players li { padding: 8px; list-style: none; font-size: 18px; font-weight: 600; }
+  .clue { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .players li { padding: 6px 0; list-style: none; font-size: 18px; }
   .players { padding: 0; }
-  .timer { text-align: center; font-size: 42px; font-weight: 900; color: #ffbe0b; margin: 12px 0; text-shadow: 0 0 20px rgba(251,191,36,.7); }
+  .timer { text-align: center; font-size: 48px; font-weight: 900; color: #fbbf24; margin: 16px 0; text-shadow: 0 4px 15px rgba(251,191,36,.5); }
+  .error { color: #ff7b7b; text-align: center; min-height: 20px; font-weight: bold; }
+  .code { text-align: center; font-size: 48px; letter-spacing: 12px; font-weight: 900; color: #fbbf24; text-shadow: 0 4px 15px rgba(251,191,36,.5); }
 
-  .settings-panel { background: rgba(0,0,0,.25); border-radius: 14px; padding: 12px; margin: 8px 0; border: 2px solid rgba(255,255,255,.1); }
-  .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-weight: 600; }
+  /* Carrés colorés */
+  .color-squares {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .square {
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 3px solid rgba(255,255,255,.3);
+    box-shadow: 0 6px 20px rgba(0,0,0,.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+    font-weight: 900;
+  }
+  .square:hover { transform: scale(1.08); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .square:active { transform: scale(0.95); }
+  .square-icon { font-size: 40px; margin-bottom: 8px; }
+  .square-text { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  
+  .square-blue { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .square-red { background: linear-gradient(135deg, #f87171, #dc2626); }
+  .square-green { background: linear-gradient(135deg, #84cc16, #65a30d); }
+
+  /* Réglages */
+  .settings-panel { background: rgba(0,0,0,.25); border-radius: 14px; padding: 12px; margin: 8px 0; }
+  .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
   .switch { position: relative; width: 56px; height: 30px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: #475569; border-radius: 30px; cursor: pointer; transition: .25s; border: 2px solid #fff; }
-  .slider:before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 2px; background: #fff; border-radius: 50%; transition: .25s; }
+  .slider { position: absolute; inset: 0; background: #475569; border-radius: 30px; cursor: pointer; transition: .25s; }
+  .slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 4px; top: 4px; background: #fff; border-radius: 50%; transition: .25s; }
   .switch input:checked + .slider { background: #22c55e; }
   .switch input:checked + .slider:before { transform: translateX(26px); }
+  .setting-state { text-align: center; opacity: .8; font-size: 14px; }
 
   /* Carte 3D */
   .scene { perspective: 1000px; width: 220px; height: 300px; margin: 15px auto; }
@@ -148,20 +158,18 @@
     position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px;
     box-shadow: 0 15px 40px rgba(0,0,0,.5);
-    border: 4px solid rgba(255,255,255,.3);
   }
   .face.back {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: 4px solid #ffbe0b;
+    background: repeating-linear-gradient(45deg, #4c1d95, #4c1d95 12px, #5b21b6 12px, #5b21b6 24px);
+    border: 4px solid #a855f7; box-shadow: 0 0 30px rgba(168,85,247,.6), 0 15px 40px rgba(0,0,0,.5);
   }
-  .face.back span { font-size: 70px; opacity: .8; }
-  .face.front { background: linear-gradient(160deg, #667eea, #764ba2); border: 4px solid #ffbe0b; transform: rotateY(180deg); }
-  .face.front .w { font-size: 32px; font-weight: 900; word-break: break-word; }
-  .face.front .r { margin-top: 14px; font-size: 20px; font-weight: 900; padding: 8px 16px; border-radius: 12px; }
-  .r.innocent { background: #22c55e; }
-  .r.impostor { background: #ef4444; }
-
-  p { font-weight: 600; }
+  .face.back span { font-size: 70px; opacity: .6; }
+  .face.front { background: linear-gradient(160deg, #1e1b4b, #312e81); border: 4px solid #fbbf24; transform: rotateY(180deg); }
+  .face.front .w { font-size: 30px; font-weight: 900; word-break: break-word; }
+  .face.front .r { margin-top: 14px; font-size: 22px; font-weight: 900; padding: 6px 14px; border-radius: 12px; }
+  .r.innocent { background: #16a34a; }
+  .r.impostor { background: #dc2626; }
+  .tap-hint { text-align: center; opacity: .7; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -172,15 +180,35 @@
     <button id="lang-he" onclick="setLang('he')">עב</button>
   </div>
 
-  <h1 data-t="title"></h1>
+  <h1>🕵️ <span data-t="title"></span></h1>
   <div class="error" id="error"></div>
 
   <!-- ACCUEIL -->
   <div id="home" class="card">
     <input id="name" maxlength="16" data-p="yourName">
-    <button onclick="createRoom()" data-t="create"></button>
-    <input id="codeInput" maxlength="4" data-p="code" style="text-transform:uppercase">
-    <button class="secondary" onclick="joinRoom()" data-t="join"></button>
+    
+    <!-- 3 CARRÉS COLORÉS -->
+    <div class="color-squares">
+      <div class="square square-blue" onclick="quickGame()">
+        <div class="square-icon">⚡</div>
+        <div class="square-text" data-t="quickGame"></div>
+      </div>
+      <div class="square square-red" onclick="createRoom()">
+        <div class="square-icon">🎮</div>
+        <div class="square-text" data-t="create"></div>
+      </div>
+      <div class="square square-green" onclick="showJoinPanel()">
+        <div class="square-icon">🔑</div>
+        <div class="square-text" data-t="join"></div>
+      </div>
+    </div>
+
+    <!-- PANEL REJOINDRE (caché par défaut) -->
+    <div id="joinPanel" class="hidden">
+      <input id="codeInput" maxlength="4" data-p="code" style="text-transform:uppercase">
+      <button class="secondary" onclick="joinRoom()" data-t="join"></button>
+      <button class="danger" onclick="hideJoinPanel()" data-t="cancel"></button>
+    </div>
   </div>
 
   <!-- LOBBY -->
@@ -204,6 +232,7 @@
       </div>
     </div>
 
+    <p id="settingState" class="setting-state hidden"></p>
     <button id="startBtn" onclick="startGame()" data-t="start"></button>
     <p id="waitHost" class="hidden" data-t="waitHost"></p>
     <button class="danger" onclick="leave()" data-t="leave"></button>
@@ -220,8 +249,8 @@
         </div>
       </div>
     </div>
-    <p style="text-align:center; opacity:.8;" data-t="tapCard"></p>
-    <p id="turnInfo" style="text-align:center;"></p>
+    <p class="tap-hint" data-t="tapCard"></p>
+    <p id="turnInfo"></p>
     <div id="clueBox">
       <input id="clueInput" maxlength="24" data-p="clue">
       <button onclick="sendClue()" data-t="send"></button>
@@ -231,7 +260,7 @@
 
   <!-- VOTE -->
   <div id="voting" class="card hidden">
-    <p style="text-align:center;" data-t="voteTitle"></p>
+    <p data-t="voteTitle"></p>
     <div class="timer" id="timer"></div>
     <div id="voteButtons"></div>
     <div id="cluesList2"></div>
@@ -252,7 +281,7 @@ const socket = io();
 
 const T = {
   fr: {
-    title: "Imposteur", create: "Créer une partie", join: "Rejoindre", yourName: "Ton prénom", code: "Code de la partie",
+    title: "Imposteur", create: "Créer", join: "Rejoindre", yourName: "Ton prénom", code: "Code de la partie",
     players: "Joueurs :", category: "Catégorie :", start: "Lancer la partie", waitHost: "En attente de l'hôte...",
     leave: "Quitter le groupe", send: "Envoyer", voteTitle: "Qui est l'imposteur ?",
     again: "Rejouer (rester dans le groupe)", yourTurn: "👉 C'est ton tour !", turnOf: "Tour de : ", round: "Tour",
@@ -261,11 +290,11 @@ const T = {
     needName: "Entre ton prénom", needCode: "Entre le code", clue: "Ton mot-indice",
     settings: "Réglages", showRole: "Afficher le rôle sur la carte", tapCard: "👆 Touche la carte pour la retourner",
     roleOn: "Rôle affiché sur la carte : OUI", roleOff: "Rôle affiché sur la carte : NON",
-    innocent: "INNOCENT", impostor: "IMPOSTEUR",
+    innocent: "INNOCENT", impostor: "IMPOSTEUR", quickGame: "Jeu Rapide", cancel: "Annuler",
     cats: { sport: "Sport", celebrite: "Célébrités", film: "Films", anime: "Anime", musique: "Musique", nature: "Nature", nourriture: "Nourriture", animaux: "Animaux" }
   },
   en: {
-    title: "Impostor", create: "Create a game", join: "Join", yourName: "Your name", code: "Game code",
+    title: "Impostor", create: "Create", join: "Join", yourName: "Your name", code: "Game code",
     players: "Players:", category: "Category:", start: "Start game", waitHost: "Waiting for the host...",
     leave: "Leave group", send: "Send", voteTitle: "Who is the impostor?",
     again: "Play again (stay in group)", yourTurn: "👉 It's your turn!", turnOf: "Turn of: ", round: "Round",
@@ -274,11 +303,11 @@ const T = {
     needName: "Enter your name", needCode: "Enter the code", clue: "Your clue word",
     settings: "Settings", showRole: "Show role on the card", tapCard: "👆 Tap the card to flip it",
     roleOn: "Role shown on card: YES", roleOff: "Role shown on card: NO",
-    innocent: "INNOCENT", impostor: "IMPOSTOR",
+    innocent: "INNOCENT", impostor: "IMPOSTOR", quickGame: "Quick Game", cancel: "Cancel",
     cats: { sport: "Sports", celebrite: "Celebrities", film: "Movies", anime: "Anime", musique: "Music", nature: "Nature", nourriture: "Food", animaux: "Animals" }
   },
   he: {
-    title: "מתחזה", create: "צור משחק", join: "הצטרף", yourName: "השם שלך", code: "קוד משחק",
+    title: "מתחזה", create: "צור", join: "הצטרף", yourName: "השם שלך", code: "קוד משחק",
     players: "שחקנים:", category: "קטגוריה:", start: "התחל משחק", waitHost: "ממתין למארח...",
     leave: "עזוב קבוצה", send: "שלח", voteTitle: "מי המתחזה?",
     again: "שחק שוב (הישאר בקבוצה)", yourTurn: "👉 התור שלך!", turnOf: "התור של: ", round: "סיבוב",
@@ -287,7 +316,7 @@ const T = {
     needName: "הכנס שם", needCode: "הכנס קוד", clue: "מילת רמז",
     settings: "הגדרות", showRole: "הצג תפקיד על הקלף", tapCard: "👆 לחץ על הקלף כדי להפוך אותו",
     roleOn: "תפקיד מוצג על הקלף: כן", roleOff: "תפקיד מוצג על הקלף: לא",
-    innocent: "תמים", impostor: "מתחזה",
+    innocent: "תמים", impostor: "מתחזה", quickGame: "משחק מהיר", cancel: "בטל",
     cats: { sport: "ספורט", celebrite: "מפורסמים", film: "סרטים", anime: "אנימה", musique: "מוזיקה", nature: "טבע", nourriture: "אוכל", animaux: "חיות" }
   }
 };
@@ -319,6 +348,7 @@ function setLang(l) {
     sel.appendChild(o);
   });
   sel.value = cur;
+  updateSettingState();
   if (state) renderGame(state);
 }
 
@@ -333,10 +363,24 @@ function showError(msg) {
   setTimeout(() => { e.textContent = ""; }, 3000);
 }
 
+function quickGame() {
+  const name = document.getElementById("name").value.trim();
+  if (!name) return showError(t("needName"));
+  socket.emit("createRoom", { name });
+}
+
 function createRoom() {
   const name = document.getElementById("name").value.trim();
   if (!name) return showError(t("needName"));
   socket.emit("createRoom", { name });
+}
+
+function showJoinPanel() {
+  document.getElementById("joinPanel").classList.remove("hidden");
+}
+
+function hideJoinPanel() {
+  document.getElementById("joinPanel").classList.add("hidden");
 }
 
 function joinRoom() {
@@ -356,6 +400,10 @@ function toggleSettings() {
 }
 function setSetting() {
   socket.emit("setSettings", { showRole: document.getElementById("showRoleToggle").checked });
+}
+function updateSettingState() {
+  const el = document.getElementById("settingState");
+  el.textContent = showRole ? t("roleOn") : t("roleOff");
 }
 
 function flipCard() {
@@ -466,7 +514,9 @@ socket.on("roomUpdate", (d) => {
   document.getElementById("waitHost").classList.toggle("hidden", isHost);
   document.getElementById("category").value = d.selectedCategory;
   document.getElementById("showRoleToggle").checked = showRole;
-  if (state) renderGame(state);
+  const st = document.getElementById("settingState");
+  st.classList.toggle("hidden", isHost);
+  updateSettingState();
 });
 
 socket.on("gameUpdate", (d) => {
