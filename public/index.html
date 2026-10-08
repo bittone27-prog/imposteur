@@ -65,7 +65,6 @@
       border-radius: 8px;
       font-size: 14px;
       transition: border-color 0.3s;
-      box-sizing: border-box;
     }
 
     input:focus, select:focus {
@@ -130,7 +129,6 @@
       font-size: 13px;
     }
 
-    /* === ACCUEIL === */
     .welcome-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -180,7 +178,6 @@
       margin-top: 5px;
     }
 
-    /* === LOBBY === */
     .code {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -272,7 +269,6 @@
       margin: 15px 0;
     }
 
-    /* === JEU === */
     .word-box {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -346,30 +342,6 @@
       color: #667eea;
     }
 
-    #voteArea {
-      margin-top: 20px;
-    }
-
-    #voteArea button {
-      margin: 8px 0;
-    }
-
-    .game-result {
-      text-align: center;
-      padding: 20px;
-      background: rgba(0,0,0,.05);
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-
-    .game-result p {
-      font-size: 18px;
-      font-weight: bold;
-      color: #667eea;
-      margin: 0;
-    }
-
-    /* === PUBLIC GAMES PANEL === */
     #publicPanel {
       position: fixed;
       top: 0;
@@ -432,7 +404,6 @@
       margin: 20px 0;
     }
 
-    /* === RESPONSIVE === */
     @media (max-width: 480px) {
       .card {
         padding: 20px;
@@ -469,7 +440,6 @@
       right: 20px;
       display: flex;
       gap: 5px;
-      z-index: 100;
     }
 
     .lang-switcher button {
@@ -488,6 +458,52 @@
       background: #ddd;
       color: #666;
     }
+
+    /* INPUT CODE */
+    #joinCodeForm {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #ddd;
+    }
+
+    #joinCodeForm input {
+      text-transform: uppercase;
+      text-align: center;
+      font-size: 20px;
+      letter-spacing: 3px;
+      font-weight: bold;
+    }
+
+    /* CATÉGORIE DANS LOBBY */
+    .category-selector {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .category-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 10px;
+      background: #f0f0f0;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .category-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+    }
+
+    .category-btn:hover {
+      border-color: #667eea;
+    }
   </style>
 </head>
 <body>
@@ -495,6 +511,7 @@
   <div class="lang-switcher">
     <button class="active" onclick="setLang('fr')">FR</button>
     <button class="inactive" onclick="setLang('en')">EN</button>
+    <button class="inactive" onclick="setLang('he')">HE</button>
   </div>
 
   <div class="container">
@@ -545,6 +562,14 @@
         <button onclick="createRoom()" id="txt-createBtn">Créer</button>
         <button class="secondary" onclick="hideCreateForm()" style="width: 100%;">Annuler</button>
       </div>
+
+      <!-- FORMULAIRE REJOINDRE AVEC CODE -->
+      <div id="joinCodeForm" class="hidden">
+        <h3 id="txt-joinTitle">Rejoindre avec Code</h3>
+        <input type="text" id="joinCode" placeholder="XXXX" maxlength="4">
+        <button onclick="joinWithCode()" id="txt-joinCodeBtn">Rejoindre</button>
+        <button class="secondary" onclick="hideJoinCodeForm()" style="width: 100%;">Annuler</button>
+      </div>
     </div>
 
     <!-- LOBBY -->
@@ -554,6 +579,12 @@
         <p id="txt-codeLabel" style="color: #999; margin: 0 0 5px 0; font-size: 12px;">Code de la partie :</p>
         <div class="code" id="roomCode" onclick="copyCode()"></div>
         <p style="font-size: 11px; color: #ccc; margin-top: 5px;" id="txt-copiedCode">Clique pour copier</p>
+      </div>
+
+      <!-- CHANGEMENT CATÉGORIE (Hôte seulement) -->
+      <div id="categorySection" class="hidden">
+        <h3 id="txt-selectCategory">Sélectionner la Catégorie :</h3>
+        <div class="category-selector" id="categorySelectorButtons"></div>
       </div>
 
       <h3 id="txt-players">Joueurs :</h3>
@@ -595,13 +626,14 @@
         <button onclick="sendClue()" id="txt-sendBtn">Envoyer</button>
       </div>
 
-      <div id="voteArea" class="hidden">
+      <div id="voteArea" class="hidden" style="margin-top: 20px;">
         <h3 id="txt-vote">Voter pour l'Imposteur :</h3>
         <div id="voteOptions"></div>
       </div>
 
-      <div id="gameResult" class="game-result hidden">
-        <p id="resultText"></p>
+      <div id="gameResult" class="hidden" style="text-align: center; padding: 20px; background: rgba(0,0,0,.05); border-radius: 8px; margin-top: 20px;">
+        <p id="resultText" style="font-size: 18px; font-weight: bold; color: #667eea; margin-bottom: 15px;"></p>
+        <button onclick="backToLobby()" id="txt-playAgainBtn">Rejouer</button>
       </div>
 
       <button class="secondary" onclick="leaveRoom()" style="width: 100%; margin-top: 15px;" id="txt-leaveGameBtn">Quitter</button>
@@ -621,7 +653,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // === TRADUCTIONS ===
+    // === TRADUCTIONS (FR + EN + HE) ===
     const T = {
       fr: {
         quickGame: "Jeu Rapide",
@@ -653,9 +685,13 @@
         needName: "Entre ton pseudo d'abord !",
         copied: "Code copié ! 📋",
         host: "Hôte",
-        impostor: "🎭 IMPOSTEUR - Tu as remporté !",
+        impostor: "🎭 Tu es l'Imposteur ! Tu as remporté !",
         innocent: "😇 Les Innocents ont remporté !",
-        impostorEliminated: "🎭 L'Imposteur a été éliminé !"
+        impostorEliminated: "🎭 L'Imposteur a été éliminé !",
+        joinTitle: "Rejoindre avec Code",
+        joinCodeBtn: "Rejoindre",
+        selectCategory: "Sélectionner la Catégorie :",
+        playAgainBtn: "Rejouer",
       },
       en: {
         quickGame: "Quick Game",
@@ -687,9 +723,51 @@
         needName: "Enter your nickname first!",
         copied: "Code copied! 📋",
         host: "Host",
-        impostor: "🎭 IMPOSTOR - You won!",
-        innocent: "😇 Innocents won!",
-        impostorEliminated: "🎭 Impostor was eliminated!"
+        impostor: "🎭 You are the Impostor! You won!",
+        innocent: "😇 The Innocents won!",
+        impostorEliminated: "🎭 The Impostor was eliminated!",
+        joinTitle: "Join with Code",
+        joinCodeBtn: "Join",
+        selectCategory: "Select Category:",
+        playAgainBtn: "Play Again",
+      },
+      he: {
+        quickGame: "משחק מהיר",
+        quickGameDesc: "משחק ציבורי",
+        create: "יצור",
+        createDesc: "משחק פרטי",
+        publicGames: "משחקים ציבוריים",
+        joinDesc: "הצטרף למשחק",
+        createTitle: "יצור משחק",
+        gameCategory: "קטגוריה:",
+        createBtn: "יצור",
+        lobby: "לובי",
+        codeLabel: "קוד המשחק:",
+        copiedCode: "לחץ להעתקה",
+        players: "שחקנים",
+        public: "🌍 ציבורי",
+        waitMsg: "המתן למארח (מינימום 3 שחקנים)...",
+        startBtn: "התחל משחק",
+        leaveBtn: "עזוב",
+        yourWord: "המילה שלך:",
+        gamePlayers: "שחקנים:",
+        clues: "רמזים:",
+        sendBtn: "שלח",
+        vote: "הצבע על המתעתע:",
+        leaveGameBtn: "עזוב",
+        publicTitle: "משחקים ציבוריים",
+        noPublicGames: "אין משחקים ציבוריים זמינים",
+        join: "הצטרף",
+        needName: "הזן את הכינוי שלך תחילה!",
+        copied: "הקוד הועתק! 📋",
+        host: "מארח",
+        impostor: "🎭 אתה המתעתע! ניצחת!",
+        innocent: "😇 התמימים ניצחו!",
+        impostorEliminated: "🎭 המתעתע הודחה!",
+        joinTitle: "הצטרף באמצעות קוד",
+        joinCodeBtn: "הצטרף",
+        selectCategory: "בחר קטגוריה:",
+        playAgainBtn: "שחק שוב",
       }
     };
 
@@ -700,9 +778,7 @@
     let roomCode = null;
     let gameState = null;
     let isPublic = false;
-    let myWord = null;
 
-    // === FONCTIONS TRADUCTION ===
     function t(key) {
       return T[currentLang]?.[key] || key;
     }
@@ -720,7 +796,7 @@
       document.getElementById("txt-lobby").innerText = t("lobby");
       document.getElementById("txt-codeLabel").innerText = t("codeLabel");
       document.getElementById("txt-copiedCode").innerText = t("copiedCode");
-      document.getElementById("txt-players").innerText = t("players");
+      document.getElementById("txt-players").innerText = t("players") + " :";
       document.getElementById("txt-public").innerText = t("public");
       document.getElementById("txt-waitMsg").innerText = t("waitMsg");
       document.getElementById("txt-startBtn").innerText = t("startBtn");
@@ -732,6 +808,10 @@
       document.getElementById("txt-vote").innerText = t("vote");
       document.getElementById("txt-leaveGameBtn").innerText = t("leaveGameBtn");
       document.getElementById("txt-publicTitle").innerText = t("publicTitle");
+      document.getElementById("txt-joinTitle").innerText = t("joinTitle");
+      document.getElementById("txt-joinCodeBtn").innerText = t("joinCodeBtn");
+      document.getElementById("txt-selectCategory").innerText = t("selectCategory");
+      document.getElementById("txt-playAgainBtn").innerText = t("playAgainBtn");
     }
 
     function setLang(lang) {
@@ -739,11 +819,17 @@
       updateUI();
       document.querySelectorAll(".lang-switcher button").forEach(btn => {
         btn.classList.remove("active", "inactive");
-        btn.classList.add(lang === btn.innerText.toLowerCase() ? "active" : "inactive");
+        const btnLang = btn.innerText.toLowerCase();
+        btn.classList.add(lang === btnLang ? "active" : "inactive");
       });
+      document.documentElement.lang = lang;
+      if (lang === "he") {
+        document.body.style.direction = "rtl";
+      } else {
+        document.body.style.direction = "ltr";
+      }
     }
 
-    // === UTILITAIRES ===
     function esc(str) {
       const div = document.createElement("div");
       div.textContent = str;
@@ -771,13 +857,20 @@
       showSuccess(t("copied"));
     }
 
-    // === ACCUEIL ===
     function showCreateForm() {
       document.getElementById("createForm").classList.remove("hidden");
     }
 
     function hideCreateForm() {
       document.getElementById("createForm").classList.add("hidden");
+    }
+
+    function showJoinCodeForm() {
+      document.getElementById("joinCodeForm").classList.remove("hidden");
+    }
+
+    function hideJoinCodeForm() {
+      document.getElementById("joinCodeForm").classList.add("hidden");
     }
 
     function quickGame() {
@@ -792,6 +885,15 @@
       if (!name) return showError(t("needName"));
       socket.emit("createRoom", { name, quick: false, category });
       hideCreateForm();
+    }
+
+    function joinWithCode() {
+      const name = document.getElementById("name").value.trim();
+      const code = document.getElementById("joinCode").value.trim().toUpperCase();
+      if (!name) return showError(t("needName"));
+      if (!code || code.length !== 4) return showError("❌ Code invalide!");
+      socket.emit("joinRoom", { name, code });
+      hideJoinCodeForm();
     }
 
     function showPublicGames() {
@@ -810,7 +912,6 @@
       hidePublicGames();
     }
 
-    // === LOBBY ===
     function togglePublic() {
       const toggle = document.getElementById("publicToggle");
       isPublic = !isPublic;
@@ -818,12 +919,20 @@
       socket.emit("togglePublic", isPublic);
     }
 
-    function leaveRoom() {
-      socket.emit("leaveRoom");
-      showWelcome();
+    function changeCategory(category) {
+      socket.emit("changeCategory", { code: roomCode, category });
+      
+      // Mettre à jour le UI
+      document.querySelectorAll(".category-btn").forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.dataset.category === category) {
+          btn.classList.add("active");
+        }
+      });
     }
 
-    function showWelcome() {
+    function leaveRoom() {
+      socket.emit("leaveRoom");
       document.getElementById("welcome").classList.remove("hidden");
       document.getElementById("lobby").classList.add("hidden");
       document.getElementById("game").classList.add("hidden");
@@ -833,7 +942,6 @@
       socket.emit("startGame");
     }
 
-    // === JEU ===
     function sendClue() {
       const input = document.getElementById("clueInput");
       const clue = input.value.trim();
@@ -846,16 +954,8 @@
       socket.emit("vote", playerId);
     }
 
-    function playAgain() {
+    function backToLobby() {
       socket.emit("backToLobby");
-    }
-
-    function updateGamePlayers(game) {
-      document.getElementById("gamePlayers").innerHTML = game.players.map(p => `
-        <div class="player-item">
-          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
-        </div>
-      `).join("");
     }
 
     // === SOCKET EVENTS ===
@@ -871,7 +971,6 @@
       document.getElementById("welcome").classList.add("hidden");
       document.getElementById("lobby").classList.remove("hidden");
       document.getElementById("game").classList.add("hidden");
-      document.getElementById("gameResult").classList.add("hidden");
 
       document.getElementById("roomCode").innerText = room.code;
       document.getElementById("playersList").innerHTML = room.players.map(p => `
@@ -891,34 +990,48 @@
         waitMsg.classList.remove("hidden");
       }
 
-      // Mettre à jour le toggle
       const toggle = document.getElementById("publicToggle");
       if (isPublic) {
         toggle.classList.add("active");
       } else {
         toggle.classList.remove("active");
       }
+
+      // Afficher le sélecteur de catégorie si c'est l'hôte
+      const categorySection = document.getElementById("categorySection");
+      if (isHost) {
+        categorySection.classList.remove("hidden");
+        const categorySelector = document.getElementById("categorySelectorButtons");
+        categorySelector.innerHTML = [
+          { val: "random", label: "🎲 Aléatoire" },
+          { val: "movies", label: "🎬 Films" },
+          { val: "sports", label: "⚽ Sports" },
+          { val: "animals", label: "🐻 Animaux" },
+          { val: "food", label: "🍕 Nourriture" },
+          { val: "countries", label: "🌎 Pays" }
+        ].map(cat => `
+          <button class="category-btn ${room.selectedCategory === cat.val ? "active" : ""}" data-category="${cat.val}" onclick="changeCategory('${cat.val}')">${cat.label}</button>
+        `).join("");
+      } else {
+        categorySection.classList.add("hidden");
+      }
     });
 
     socket.on("gameStart", (gameData) => {
       gameState = gameData;
-      myWord = gameData.myWord;
-      
       document.getElementById("lobby").classList.add("hidden");
       document.getElementById("game").classList.remove("hidden");
-      document.getElementById("gameResult").classList.add("hidden");
-      document.getElementById("voteArea").classList.add("hidden");
-      document.getElementById("turnArea").classList.add("hidden");
 
       document.getElementById("myWord").innerText = gameData.myWord;
-      document.getElementById("clues").innerHTML = "";
-      updateGamePlayers(gameData.game);
+      document.getElementById("gamePlayers").innerHTML = gameData.players.map(p => `
+        <div class="player-item">
+          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
+        </div>
+      `).join("");
     });
 
     socket.on("clueAdded", (data) => {
-      gameState = data.game;
-      updateGamePlayers(data.game);
-      document.getElementById("clues").innerHTML = data.game.clues.map((c, i) => `
+      document.getElementById("clues").innerHTML = data.game.clues.map(c => `
         <div class="clue-item ${c.isImpostor ? "clue-impostor" : ""}">
           <span class="clue-player">${esc(c.playerName)}</span>
           <span class="clue-word">${esc(c.clue)}</span>
@@ -928,28 +1041,32 @@
 
     socket.on("turnUpdate", (data) => {
       gameState = data.game;
-      updateGamePlayers(data.game);
+      document.getElementById("gamePlayers").innerHTML = data.game.players.map(p => `
+        <div class="player-item">
+          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
+        </div>
+      `).join("");
 
       if (data.game.currentPlayer === myId) {
         document.getElementById("turnArea").classList.remove("hidden");
         document.getElementById("clueInput").focus();
-        document.getElementById("turnIndicator").innerText = `🎤 ${t("yourWord")}`;
       } else {
         document.getElementById("turnArea").classList.add("hidden");
-        document.getElementById("turnIndicator").innerText = `🎤 ${esc(data.currentPlayerName)} parle...`;
       }
 
+      document.getElementById("turnIndicator").innerText = `🎤 ${esc(data.currentPlayerName)} parle...`;
       document.getElementById("turnIndicator").classList.remove("hidden");
     });
 
     socket.on("votePhase", (data) => {
       gameState = data.game;
+      document.getElementById("clues").classList.add("hidden");
       document.getElementById("turnArea").classList.add("hidden");
       document.getElementById("turnIndicator").classList.add("hidden");
       document.getElementById("voteArea").classList.remove("hidden");
 
       document.getElementById("voteOptions").innerHTML = data.game.players.map(p => `
-        <button class="secondary" onclick="vote('${p.id}')" style="width: 100%;">Vote pour ${esc(p.name)}</button>
+        <button class="secondary" onclick="vote('${p.id}')" style="width: 100%; margin-bottom: 8px;">Vote pour ${esc(p.name)}</button>
       `).join("");
     });
 
@@ -988,7 +1105,6 @@
       showError(msg);
     });
 
-    // Initialiser l'UI au chargement
     setLang("fr");
   </script>
 </body>
