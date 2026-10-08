@@ -43,7 +43,8 @@ function broadcastRoom(room) {
       code: room.code,
       host: room.hostId,
       players: room.players.map(pl => ({ id: pl.id, name: pl.name })),
-      selectedCategory: room.category
+      selectedCategory: room.category,
+      settings: room.settings
     });
   }
 }
@@ -57,6 +58,7 @@ function broadcastGame(room) {
     p.socket.emit("gameUpdate", {
       phase: room.phase,
       word: p.word,
+      role: p.isImpostor ? "impostor" : "innocent",
       category: room.category,
       turn: room.players[room.turnIndex] ? room.players[room.turnIndex].id : null,
       round: room.round,
@@ -92,7 +94,7 @@ function startGame(room) {
 function endVoting(room) {
   if (room.phase !== "voting") return;
   room.phase = "end";
-  if (room.voteTimeout) clearTimeout(room.voteTimeout);
+  if (room.voteTimeout) { clearTimeout(room.voteTimeout); room.voteTimeout = null; }
 
   const counts = {};
   Object.values(room.votes).forEach(id => { counts[id] = (counts[id] || 0) + 1; });
@@ -110,12 +112,20 @@ function endVoting(room) {
     tie: tie || !eliminated,
     eliminatedName: eliminated ? eliminated.name : null,
     wasImpostor: eliminated ? eliminated.isImpostor : false,
-    impostorName: impostor.name,
+    impostorName: impostor ? impostor.name : "?",
     impostorWord: room.impostorWord,
     civilWord: room.civilWord
   };
 
   for (const p of room.players) p.socket.emit("gameEnd", result);
+}
+
+function startVoting(room) {
+  room.phase = "voting";
+  room.votes = {};
+  broadcastGame(room);
+  if (room.voteTimeout) clearTimeout(room.voteTimeout);
+  room.voteTimeout = setTimeout(() => endVoting(room), 15000);
 }
 
 function removePlayer(socket) {
@@ -139,10 +149,10 @@ function removePlayer(socket) {
   if (room.phase === "lobby") return broadcastRoom(room);
 
   if (room.players.length < 3) {
-    if (room.voteTimeout) clearTimeout(room.voteTimeout);
+    if (room.voteTimeout) { clearTimeout(room.voteTimeout); room.voteTimeout = null; }
     room.phase = "lobby";
     room.votes = {};
-    room.players.forEach(p => { p.clues = []; p.word = null; });
+    room.players.forEach(p => { p.clues = []; p.word = null; p.isImpostor = false; });
     for (const p of room.players) p.socket.emit("backToLobby");
     return broadcastRoom(room);
   }
@@ -165,20 +175,13 @@ function removePlayer(socket) {
   }
 }
 
-function startVoting(room) {
-  room.phase = "voting";
-  room.votes = {};
-  broadcastGame(room);
-  if (room.voteTimeout) clearTimeout(room.voteTimeout);
-  room.voteTimeout = setTimeout(() => endVoting(room), 15000);
-}
-
 io.on("connection", (socket) => {
   socket.on("createRoom", ({ name }) => {
     const code = makeCode();
     const room = {
       code, hostId: socket.id, players: [], phase: "lobby",
-      category: "sport", votes: {}, round: 1, turnIndex: 0
+      category: "sport", votes: {}, round: 1, turnIndex: 0,
+      settings: { showRole: false }
     };
     rooms[code] = room;
     room.players.push({ id: socket.id, name: String(name || "Joueur").slice(0, 16), socket, clues: [] });
@@ -203,6 +206,13 @@ io.on("connection", (socket) => {
     if (!room || room.phase !== "lobby" || socket.id !== room.hostId) return;
     if (!PAIRS[category]) return;
     room.category = category;
+    broadcastRoom(room);
+  });
+
+  socket.on("setSettings", (s) => {
+    const room = rooms[socket.roomCode];
+    if (!room || room.phase !== "lobby" || socket.id !== room.hostId) return;
+    room.settings.showRole = !!(s && s.showRole);
     broadcastRoom(room);
   });
 
@@ -249,7 +259,7 @@ io.on("connection", (socket) => {
   socket.on("again", () => {
     const room = rooms[socket.roomCode];
     if (!room || socket.id !== room.hostId) return;
-    if (room.voteTimeout) clearTimeout(room.voteTimeout);
+    if (room.voteTimeout) { clearTimeout(room.voteTimeout); room.voteTimeout = null; }
     room.phase = "lobby";
     room.votes = {};
     room.players.forEach(p => { p.clues = []; p.word = null; p.isImpostor = false; });
