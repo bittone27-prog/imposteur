@@ -164,7 +164,9 @@ io.on("connection", (socket) => {
       impostorId: room.players[impostorIndex].id,
       clues: [],
       votes: {},
-      winner: null
+      winner: null,
+      roundCount: 0,
+      maxRounds: room.players.length
     };
 
     // Envoyer les infos à chaque joueur
@@ -198,7 +200,9 @@ io.on("connection", (socket) => {
 
   // === ENVOYER UN MOT ===
   socket.on("sendClue", (clue) => {
-    const room = Object.values(rooms).find(r => r.code === Array.from(socket.rooms).find(c => rooms[c]));
+    const roomCode = Array.from(socket.rooms).find(c => rooms[c]);
+    const room = rooms[roomCode];
+    
     if (!room || room.state.phase !== "game") return;
 
     const player = room.players.find(p => p.id === socket.id);
@@ -225,23 +229,38 @@ io.on("connection", (socket) => {
     // Passer au joueur suivant
     room.state.currentPlayerIndex = (room.state.currentPlayerIndex + 1) % room.players.length;
     const nextPlayer = room.players[room.state.currentPlayerIndex];
+    room.state.roundCount++;
 
-    io.to(room.code).emit("turnUpdate", {
-      game: {
-        players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
-        currentPlayer: nextPlayer.id,
-        clues: room.state.clues
-      },
-      currentPlayerName: nextPlayer.name
-    });
+    // Vérifier si on doit passer au vote
+    if (room.state.roundCount >= room.state.maxRounds) {
+      room.state.phase = "vote";
+      io.to(room.code).emit("votePhase", {
+        game: {
+          players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
+          clues: room.state.clues
+        }
+      });
+      console.log(`🗳️ Phase de vote: ${room.code}`);
+    } else {
+      io.to(room.code).emit("turnUpdate", {
+        game: {
+          players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
+          currentPlayer: nextPlayer.id,
+          clues: room.state.clues
+        },
+        currentPlayerName: nextPlayer.name
+      });
+    }
 
     console.log(`💬 ${player.name} a dit: "${clue}"`);
   });
 
   // === VOTER ===
   socket.on("vote", (targetId) => {
-    const room = Object.values(rooms).find(r => r.code === Array.from(socket.rooms).find(c => rooms[c]));
-    if (!room) return;
+    const roomCode = Array.from(socket.rooms).find(c => rooms[c]);
+    const room = rooms[roomCode];
+    
+    if (!room || room.state.phase !== "vote") return;
 
     room.state.votes[socket.id] = targetId;
 
@@ -264,14 +283,16 @@ io.on("connection", (socket) => {
       const impostorEliminated = mostVoted === room.state.impostorId;
       const innocentsWon = impostorEliminated;
 
+      room.state.phase = "result";
+
       io.to(room.code).emit("gameResult", {
         impostor: room.state.impostorId,
         eliminated: mostVoted,
         innocentsWon: innocentsWon,
-        word: room.players.find(p => p.id === room.state.impostorId).word
+        word: room.players.find(p => p.id === room.state.impostorId).word,
+        votes: room.state.votes
       });
 
-      room.state.phase = "result";
       console.log(`🏁 Partie terminée: ${room.code} - Imposteur ${impostorEliminated ? "éliminé" : "gagne"}`);
     }
   });
