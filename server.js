@@ -9,11 +9,9 @@ const io = socketIo(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// Servir les fichiers statiques
 app.use(express.static(path.join(__dirname, "public")));
 
-// Base de données en mémoire
-const rooms = {}; // { code: { code, host, hostName, players, isPublic, settings, gameRunning, state, selectedCategory, ... } }
+const rooms = {};
 const categories = {
   movies: ["Avatar", "Inception", "Interstellar", "Matrix", "Titanic", "Forrest Gump", "Pulp Fiction"],
   sports: ["Football", "Tennis", "Basketball", "Natation", "Boxe", "Golf", "Cyclisme"],
@@ -23,7 +21,6 @@ const categories = {
   random: ["Soleil", "Lune", "Montagne", "Ocean", "Forêt", "Désert", "Volcan"]
 };
 
-// === UTILITAIRES ===
 function getRandomWord(category = "random") {
   const cat = categories[category] || categories.random;
   return cat[Math.floor(Math.random() * cat.length)];
@@ -44,7 +41,6 @@ function generateCode() {
   return Math.random().toString(36).substr(2, 4).toUpperCase();
 }
 
-// === SOCKET EVENTS ===
 io.on("connection", (socket) => {
   console.log(`✅ Joueur connecté: ${socket.id}`);
 
@@ -64,212 +60,193 @@ io.on("connection", (socket) => {
           clue: null
         }
       ],
-      isPublic: data.quick || false, // Quick Game = public
+      isPublic: data.quick || false,
       selectedCategory: data.category || "random",
       gameRunning: false,
       state: null,
-      settings: {
-        showRole: false
-      }
+      settings: { showRole: false }
     };
 
     rooms[code] = roomData;
     socket.join(code);
     socket.emit("roomUpdate", roomData);
-
-    // Si public, notifier tous les clients
-    if (roomData.isPublic) {
-      io.emit("updatePublicRooms", getPublicRoomsList());
-    }
-
-    console.log(`🎮 Salle créée: ${code} (Public: ${roomData.isPublic})`);
+    io.to(code).emit("updatePublicRooms", getPublicRoomsList());
   });
 
-  // === REJOINDRE UNE SALLE ===
+  // === REJOINDRE AVEC CODE ===
   socket.on("joinRoom", (data) => {
-    const room = rooms[data.code];
+    const { name, code } = data;
+    const room = rooms[code];
 
     if (!room) {
-      socket.emit("errorMsg", "❌ Salle introuvable");
-      return;
+      return socket.emit("errorMsg", "❌ Code invalide !");
     }
 
     if (room.gameRunning) {
-      socket.emit("errorMsg", "❌ Partie déjà en cours");
-      return;
+      return socket.emit("errorMsg", "❌ La partie a déjà commencé !");
     }
 
+    // Vérifier si le joueur existe déjà
     if (room.players.some(p => p.id === socket.id)) {
-      socket.emit("errorMsg", "❌ Tu es déjà dans cette salle");
+      socket.join(code);
+      io.to(code).emit("roomUpdate", room);
       return;
     }
 
     // Ajouter le joueur
     room.players.push({
       id: socket.id,
-      name: data.name,
+      name,
       eliminated: false,
       word: null,
       clue: null
     });
 
-    socket.join(data.code);
-    io.to(data.code).emit("roomUpdate", room);
+    socket.join(code);
+    io.to(code).emit("roomUpdate", room);
+    io.to(code).emit("updatePublicRooms", getPublicRoomsList());
+  });
 
-    // Si public, mettre à jour la liste
-    if (room.isPublic) {
-      io.emit("updatePublicRooms", getPublicRoomsList());
+  // === CHANGER LA CATÉGORIE (DANS LE LOBBY) ===
+  socket.on("changeCategory", (data) => {
+    const { code, category } = data;
+    const room = rooms[code];
+
+    if (!room || room.host !== socket.id) {
+      return socket.emit("errorMsg", "❌ Seul l'hôte peut changer la catégorie !");
     }
 
-    console.log(`➕ ${data.name} a rejoint ${data.code}`);
+    room.selectedCategory = category;
+    io.to(code).emit("roomUpdate", room);
+    io.to(code).emit("updatePublicRooms", getPublicRoomsList());
   });
 
-  // === TOGGLE PUBLIC/PRIVÉ ===
+  // === TOGGLE PUBLIC ===
   socket.on("togglePublic", (isPublic) => {
-    const room = Object.values(rooms).find(r => r.host === socket.id);
-    if (!room) return;
-
-    room.isPublic = isPublic;
-    io.to(room.code).emit("roomUpdate", room);
-    io.emit("updatePublicRooms", getPublicRoomsList());
-
-    console.log(`🔄 ${room.code} est maintenant ${isPublic ? "PUBLIC" : "PRIVÉ"}`);
-  });
-
-  // === OBTENIR LES SALLES PUBLIQUES ===
-  socket.on("getPublicRooms", () => {
-    socket.emit("updatePublicRooms", getPublicRoomsList());
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
+    
+    if (room && room.host === socket.id) {
+      room.isPublic = isPublic;
+      io.to(room.code).emit("roomUpdate", room);
+      io.to(room.code).emit("updatePublicRooms", getPublicRoomsList());
+    }
   });
 
   // === LANCER LA PARTIE ===
   socket.on("startGame", () => {
-    const room = Object.values(rooms).find(r => r.host === socket.id);
-    if (!room || room.players.length < 2) return;
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
+
+    if (!room || room.host !== socket.id) return;
+    if (room.players.length < 3) {
+      return socket.emit("errorMsg", "❌ Minimum 3 joueurs requis !");
+    }
 
     room.gameRunning = true;
 
-    // Assigner les mots
-    const word = getRandomWord(room.selectedCategory);
+    // Assigner les rôles
     const impostorIndex = Math.floor(Math.random() * room.players.length);
+    const impostorWord = getRandomWord(room.selectedCategory);
 
-    room.players.forEach((p, i) => {
-      p.word = i === impostorIndex ? "❓ TU ES L'IMPOSTEUR" : word;
-      p.eliminated = false;
-      p.clue = null;
+    room.players.forEach((player, index) => {
+      player.word = index === impostorIndex ? "🎭 IMPOSTEUR" : impostorWord;
+      player.clue = null;
+      player.eliminated = false;
     });
 
-    room.state = {
-      phase: "game", // game, vote, result
-      currentPlayerIndex: 0,
-      impostorId: room.players[impostorIndex].id,
+    room.currentPlayerIndex = 0;
+    room.clues = [];
+    room.impostorId = room.players[impostorIndex].id;
+    room.roundCount = 0;
+
+    const gameData = {
+      players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
+      myWord: null,
+      currentPlayer: room.players[room.currentPlayerIndex].id,
       clues: [],
-      votes: {},
-      winner: null,
-      roundCount: 0,
-      maxRounds: room.players.length
+      impostorWord: impostorWord
     };
 
-    // Envoyer les infos à chaque joueur
-    room.players.forEach(p => {
-      const playerSocket = io.sockets.sockets.get(p.id);
-      if (playerSocket) {
-        playerSocket.emit("gameStart", {
-          myWord: p.word,
-          game: {
-            code: room.code,
-            players: room.players.map(pl => ({ id: pl.id, name: pl.name, eliminated: pl.eliminated })),
-            currentPlayer: room.players[room.state.currentPlayerIndex].id,
-            clues: room.state.clues,
-            phase: "game"
-          }
-        });
-      }
+    room.players.forEach(player => {
+      const playerData = { ...gameData };
+      playerData.myWord = player.word;
+      io.to(player.id).emit("gameStart", playerData);
     });
 
-    io.to(room.code).emit("turnUpdate", {
-      game: {
-        players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
-        currentPlayer: room.players[0].id,
-        clues: []
-      },
-      currentPlayerName: room.players[0].name
-    });
-
-    console.log(`🎮 Partie lancée: ${room.code}`);
+    setTimeout(() => {
+      io.to(room.code).emit("turnUpdate", {
+        game: gameData,
+        currentPlayerName: room.players[room.currentPlayerIndex].name
+      });
+    }, 500);
   });
 
-  // === ENVOYER UN MOT ===
+  // === ENVOYER UN INDICE ===
   socket.on("sendClue", (clue) => {
-    const roomCode = Array.from(socket.rooms).find(c => rooms[c]);
-    const room = rooms[roomCode];
-    
-    if (!room || room.state.phase !== "game") return;
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
+
+    if (!room || room.gameRunning === false) return;
 
     const player = room.players.find(p => p.id === socket.id);
-    if (!player) return;
+    if (!player || room.players[room.currentPlayerIndex].id !== socket.id) return;
 
-    const currentPlayer = room.players[room.state.currentPlayerIndex];
-    if (currentPlayer.id !== socket.id) return;
-
-    // Ajouter le clue
-    const isImpostor = socket.id === room.state.impostorId;
-    room.state.clues.push({
+    player.clue = clue;
+    room.clues.push({
       playerName: player.name,
-      clue: clue,
-      isImpostor: isImpostor
+      clue,
+      isImpostor: player.id === room.impostorId
     });
 
     io.to(room.code).emit("clueAdded", {
       game: {
         players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
-        clues: room.state.clues
+        clues: room.clues
       }
     });
 
     // Passer au joueur suivant
-    room.state.currentPlayerIndex = (room.state.currentPlayerIndex + 1) % room.players.length;
-    const nextPlayer = room.players[room.state.currentPlayerIndex];
-    room.state.roundCount++;
+    room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length;
+    const nextPlayer = room.players[room.currentPlayerIndex];
 
-    // Vérifier si on doit passer au vote
-    if (room.state.roundCount >= room.state.maxRounds) {
-      room.state.phase = "vote";
-      io.to(room.code).emit("votePhase", {
-        game: {
-          players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
-          clues: room.state.clues
-        }
-      });
-      console.log(`🗳️ Phase de vote: ${room.code}`);
-    } else {
-      io.to(room.code).emit("turnUpdate", {
-        game: {
-          players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
-          currentPlayer: nextPlayer.id,
-          clues: room.state.clues
-        },
-        currentPlayerName: nextPlayer.name
-      });
-    }
+    setTimeout(() => {
+      // Vérifier si tous les joueurs ont parlé
+      const allSpoke = room.players.every(p => p.clue !== null);
 
-    console.log(`💬 ${player.name} a dit: "${clue}"`);
+      if (allSpoke) {
+        // PHASE DE VOTE
+        io.to(room.code).emit("votePhase", {
+          game: {
+            players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
+            clues: room.clues
+          }
+        });
+      } else {
+        io.to(room.code).emit("turnUpdate", {
+          game: {
+            players: room.players.map(p => ({ id: p.id, name: p.name, eliminated: p.eliminated })),
+            clues: room.clues
+          },
+          currentPlayerName: nextPlayer.name
+        });
+      }
+    }, 300);
   });
 
-  // === VOTER ===
-  socket.on("vote", (targetId) => {
-    const roomCode = Array.from(socket.rooms).find(c => rooms[c]);
-    const room = rooms[roomCode];
-    
-    if (!room || room.state.phase !== "vote") return;
+  // === VOTE ===
+  socket.on("vote", (votedPlayerId) => {
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
 
-    room.state.votes[socket.id] = targetId;
+    if (!room) return;
 
-    // Si tous les joueurs ont voté
-    if (Object.keys(room.state.votes).length === room.players.length) {
+    if (!room.votes) room.votes = {};
+    room.votes[socket.id] = votedPlayerId;
+
+    const allVoted = room.players.length === Object.keys(room.votes).length;
+
+    if (allVoted) {
       // Compter les votes
       const voteCount = {};
-      Object.values(room.state.votes).forEach(vid => {
-        voteCount[vid] = (voteCount[vid] || 0) + 1;
+      Object.values(room.votes).forEach(id => {
+        voteCount[id] = (voteCount[id] || 0) + 1;
       });
 
       const mostVoted = Object.keys(voteCount).reduce((a, b) => 
@@ -277,108 +254,72 @@ io.on("connection", (socket) => {
       );
 
       const eliminated = room.players.find(p => p.id === mostVoted);
-      if (eliminated) eliminated.eliminated = true;
+      eliminated.eliminated = true;
 
-      // Vérifier si l'imposteur est éliminé
-      const impostorEliminated = mostVoted === room.state.impostorId;
-      const innocentsWon = impostorEliminated;
-
-      room.state.phase = "result";
+      const innocentsWon = mostVoted === room.impostorId;
 
       io.to(room.code).emit("gameResult", {
-        impostor: room.state.impostorId,
-        eliminated: mostVoted,
-        innocentsWon: innocentsWon,
-        word: room.players.find(p => p.id === room.state.impostorId).word,
-        votes: room.state.votes
+        impostor: room.impostorId,
+        innocentsWon,
+        eliminatedPlayer: eliminated.name
       });
 
-      console.log(`🏁 Partie terminée: ${room.code} - Imposteur ${impostorEliminated ? "éliminé" : "gagne"}`);
+      room.gameRunning = false;
+      room.votes = {};
+      room.clues = [];
+      room.players.forEach(p => p.clue = null);
     }
   });
 
-  // === QUITTER LA SALLE ===
+  // === GET PARTIES PUBLIQUES ===
+  socket.on("getPublicRooms", () => {
+    socket.emit("updatePublicRooms", getPublicRoomsList());
+  });
+
+  // === QUITTER ===
   socket.on("leaveRoom", () => {
-    for (const code in rooms) {
-      const room = rooms[code];
-      const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
 
-      if (playerIndex !== -1) {
-        room.players.splice(playerIndex, 1);
-        socket.leave(code);
+    if (room) {
+      room.players = room.players.filter(p => p.id !== socket.id);
 
-        if (room.players.length === 0) {
-          delete rooms[code];
-          console.log(`🗑️ Salle ${code} supprimée (vide)`);
-        } else {
-          // Si l'hôte part, promouvoir le premier joueur
-          if (room.host === socket.id) {
-            room.host = room.players[0].id;
-            room.hostName = room.players[0].name;
-          }
-
-          io.to(code).emit("roomUpdate", room);
-          console.log(`👋 Joueur parti de ${code}`);
+      if (room.players.length === 0) {
+        delete rooms[room.code];
+      } else {
+        if (room.host === socket.id) {
+          room.host = room.players[0].id;
+          room.hostName = room.players[0].name;
         }
-
-        // Mettre à jour la liste publique
-        io.emit("updatePublicRooms", getPublicRoomsList());
-        break;
+        io.to(room.code).emit("roomUpdate", room);
       }
     }
+
+    socket.leave(room?.code || "");
+    io.emit("updatePublicRooms", getPublicRoomsList());
   });
 
-  // === RETOUR AU LOBBY ===
-  socket.on("backToLobby", () => {
-    for (const code in rooms) {
-      const room = rooms[code];
-      if (room.players.some(p => p.id === socket.id)) {
-        room.gameRunning = false;
-        room.state = null;
-        room.players.forEach(p => {
-          p.word = null;
-          p.eliminated = false;
-          p.clue = null;
-        });
-
-        io.to(code).emit("roomUpdate", room);
-        break;
-      }
-    }
-  });
-
-  // === DÉCONNEXION ===
   socket.on("disconnect", () => {
-    for (const code in rooms) {
-      const room = rooms[code];
-      const playerIndex = room.players.findIndex(p => p.id === socket.id);
+    console.log(`❌ Joueur déconnecté: ${socket.id}`);
+    const room = Object.values(rooms).find(r => r.players.some(p => p.id === socket.id));
 
-      if (playerIndex !== -1) {
-        room.players.splice(playerIndex, 1);
+    if (room) {
+      room.players = room.players.filter(p => p.id !== socket.id);
 
-        if (room.players.length === 0) {
-          delete rooms[code];
-          console.log(`🗑️ Salle ${code} supprimée (déconnexion)`);
-        } else {
-          if (room.host === socket.id) {
-            room.host = room.players[0].id;
-            room.hostName = room.players[0].name;
-          }
-
-          io.to(code).emit("roomUpdate", room);
+      if (room.players.length === 0) {
+        delete rooms[room.code];
+      } else {
+        if (room.host === socket.id) {
+          room.host = room.players[0].id;
+          room.hostName = room.players[0].name;
         }
-
-        io.emit("updatePublicRooms", getPublicRoomsList());
-        break;
+        io.to(room.code).emit("roomUpdate", room);
       }
     }
 
-    console.log(`❌ Joueur déconnecté: ${socket.id}`);
+    io.emit("updatePublicRooms", getPublicRoomsList());
   });
 });
 
-// === DÉMARRAGE DU SERVEUR ===
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
+server.listen(3000, () => {
+  console.log("🎮 Serveur démarré sur http://localhost:3000");
 });
