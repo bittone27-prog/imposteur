@@ -1,556 +1,950 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Imposteur</title>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: 'Arial Black', Arial, sans-serif;
-    background: conic-gradient(from 45deg, #667eea 0deg, #764ba2 90deg, #f093fb 180deg, #667eea 270deg);
-    background-size: 400% 400%;
-    color: #fff; margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh;
-    animation: gradShift 8s ease infinite;
-  }
-  @keyframes gradShift {
-    0%, 100% { filter: hue-rotate(0deg); }
-    50% { filter: hue-rotate(10deg); }
-  }
-  
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(255,255,255,.1) 1px, transparent 1px),
-      repeating-conic-gradient(from 0deg at 50% 50%, #667eea 0deg 45deg, #764ba2 45deg 90deg);
-    background-size: 60px 60px, 100% 100%;
-    pointer-events: none;
-    opacity: 0.3;
-    z-index: -1;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impostor Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  .app { width: 100%; max-width: 480px; z-index: 1; }
-  
-  h1 {
-    text-align: center;
-    font-size: 48px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #fff;
-    text-shadow: 
-      -3px -3px 0 #000,
-      3px -3px 0 #000,
-      -3px 3px 0 #000,
-      3px 3px 0 #000,
-      -5px 0 0 #ff006e,
-      5px 0 0 #00d9ff,
-      0 -5px 0 #ffbe0b;
-    margin: 20px 0;
-    animation: titleBounce 0.6s ease;
-  }
-  @keyframes titleBounce { 0% { transform: scale(0.8); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
 
-  .lang { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
-  .lang button { width: auto; padding: 6px 14px; font-size: 14px; background: rgba(0,0,0,.4); box-shadow: none; border: 2px solid #fff; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; }
-  .lang button.active { background: #fff; color: #667eea; }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      animation: fadeIn 0.5s ease-in;
+    }
 
-  .card {
-    background: rgba(0,0,0,.25);
-    border: 3px solid rgba(255,255,255,.3);
-    backdrop-filter: blur(10px);
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 15px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.3);
-    animation: slideIn 0.4s ease;
-  }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
-  
-  input, select {
-    width: 100%; padding: 14px; margin: 6px 0; border-radius: 14px; border: 2px solid transparent;
-    background: rgba(255,255,255,.95); color: #222; font-size: 16px; outline: none; font-weight: bold;
-  }
-  input:focus, select:focus { border-color: #667eea; }
-  
-  button {
-    width: 100%; padding: 14px; margin: 6px 0; border: none; border-radius: 16px;
-    background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-size: 17px; font-weight: 900;
-    cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 6px 0 #0f7a38;
-    text-transform: uppercase; letter-spacing: 1px;
-  }
-  button:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #0f7a38; }
-  button:active { transform: translateY(3px); box-shadow: 0 2px 0 #0f7a38; }
-  button.secondary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 0 #4c1d95; }
-  button.secondary:hover { box-shadow: 0 8px 0 #4c1d95; }
-  button.danger { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 6px 0 #7f1d1d; }
-  button.danger:hover { box-shadow: 0 8px 0 #7f1d1d; }
-  button.settings { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 0 #92400e; }
-  button.settings:hover { box-shadow: 0 8px 0 #92400e; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  
-  .vote-btn { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 6px 0 #1e293b; text-transform: none; letter-spacing: 0; }
-  .vote-btn:hover { box-shadow: 0 8px 0 #1e293b; }
-  .vote-btn.voted { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 6px 0 #92400e; }
-  
-  .hidden { display: none !important; }
-  .clue { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
-  .players li { padding: 6px 0; list-style: none; font-size: 18px; }
-  .players { padding: 0; }
-  .timer { text-align: center; font-size: 48px; font-weight: 900; color: #fbbf24; margin: 16px 0; text-shadow: 0 4px 15px rgba(251,191,36,.5); }
-  .error { color: #ff7b7b; text-align: center; min-height: 20px; font-weight: bold; }
-  .code { text-align: center; font-size: 48px; letter-spacing: 12px; font-weight: 900; color: #fbbf24; text-shadow: 0 4px 15px rgba(251,191,36,.5); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-  /* Carrés colorés */
-  .color-squares {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    margin: 24px 0;
-  }
-  .square {
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 3px solid rgba(255,255,255,.3);
-    box-shadow: 0 6px 20px rgba(0,0,0,.3);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 140px;
-    font-weight: 900;
-  }
-  .square:hover { transform: scale(1.08); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
-  .square:active { transform: scale(0.95); }
-  .square-icon { font-size: 40px; margin-bottom: 8px; }
-  .square-text { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-  
-  .square-blue { background: linear-gradient(135deg, #667eea, #764ba2); }
-  .square-red { background: linear-gradient(135deg, #f87171, #dc2626); }
-  .square-green { background: linear-gradient(135deg, #84cc16, #65a30d); }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      margin-bottom: 20px;
+    }
 
-  /* Réglages */
-  .settings-panel { background: rgba(0,0,0,.25); border-radius: 14px; padding: 12px; margin: 8px 0; }
-  .switch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; }
-  .switch { position: relative; width: 56px; height: 30px; flex-shrink: 0; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: #475569; border-radius: 30px; cursor: pointer; transition: .25s; }
-  .slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 4px; top: 4px; background: #fff; border-radius: 50%; transition: .25s; }
-  .switch input:checked + .slider { background: #22c55e; }
-  .switch input:checked + .slider:before { transform: translateX(26px); }
-  .setting-state { text-align: center; opacity: .8; font-size: 14px; }
+    .hidden {
+      display: none !important;
+    }
 
-  /* Carte 3D */
-  .scene { perspective: 1000px; width: 220px; height: 300px; margin: 15px auto; }
-  .flip-card {
-    position: relative; width: 100%; height: 100%; cursor: pointer;
-    transform-style: preserve-3d; transition: transform .8s cubic-bezier(.4, .2, .2, 1);
-    animation: floaty 3s ease-in-out infinite;
-  }
-  .flip-card.flipped { transform: rotateY(180deg); animation: none; }
-  @keyframes floaty { 0%,100% { transform: translateY(0) rotateY(0); } 50% { transform: translateY(-8px) rotateY(0); } }
-  .face {
-    position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px;
-    box-shadow: 0 15px 40px rgba(0,0,0,.5);
-  }
-  .face.back {
-    background: repeating-linear-gradient(45deg, #4c1d95, #4c1d95 12px, #5b21b6 12px, #5b21b6 24px);
-    border: 4px solid #a855f7; box-shadow: 0 0 30px rgba(168,85,247,.6), 0 15px 40px rgba(0,0,0,.5);
-  }
-  .face.back span { font-size: 70px; opacity: .6; }
-  .face.front { background: linear-gradient(160deg, #1e1b4b, #312e81); border: 4px solid #fbbf24; transform: rotateY(180deg); }
-  .face.front .w { font-size: 30px; font-weight: 900; word-break: break-word; }
-  .face.front .r { margin-top: 14px; font-size: 22px; font-weight: 900; padding: 6px 14px; border-radius: 12px; }
-  .r.innocent { background: #16a34a; }
-  .r.impostor { background: #dc2626; }
-  .tap-hint { text-align: center; opacity: .7; font-size: 14px; }
-</style>
+    h1 {
+      text-align: center;
+      color: #667eea;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+
+    h3 {
+      color: #764ba2;
+      margin: 20px 0 15px 0;
+      font-size: 16px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #ddd;
+      color: #333;
+      width: auto;
+      padding: 8px 16px;
+      margin: 0;
+    }
+
+    button.secondary:hover {
+      background: #ccc;
+      box-shadow: none;
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .success {
+      background: #efe;
+      color: #3c3;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    /* === ACCUEIL === */
+    .welcome-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .welcome-grid.full {
+      grid-template-columns: 1fr;
+    }
+
+    .game-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .game-card:hover {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+      border-color: rgba(102, 126, 234, 0.6);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+
+    .game-card-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .game-card-title {
+      font-weight: bold;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .game-card-desc {
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    /* === LOBBY === */
+    .code {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+      letter-spacing: 2px;
+      font-family: monospace;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .code:hover {
+      transform: scale(1.05);
+    }
+
+    .player-item {
+      background: rgba(102, 126, 234, 0.1);
+      padding: 10px 15px;
+      margin: 8px 0;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-name {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .player-role {
+      font-size: 12px;
+      color: #999;
+      padding: 4px 8px;
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+    }
+
+    .settings-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(102, 126, 234, 0.1);
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+      background: #ccc;
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-switch.active {
+      background: #667eea;
+    }
+
+    .toggle-switch-ball {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: left 0.3s;
+    }
+
+    .toggle-switch.active .toggle-switch-ball {
+      left: 27px;
+    }
+
+    .wait-msg {
+      text-align: center;
+      color: #999;
+      font-size: 13px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+
+    /* === JEU === */
+    .word-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clue-item {
+      background: rgba(102, 126, 234, 0.1);
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #667eea;
+    }
+
+    .clue-player {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .clue-word {
+      color: #667eea;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .clue-impostor {
+      background: rgba(255, 0, 0, 0.2);
+      border-left-color: #ff0000;
+    }
+
+    .clue-impostor .clue-word {
+      color: #ff0000;
+    }
+
+    #turnArea {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    #clueInput {
+      flex: 1;
+      margin: 0;
+    }
+
+    #turnArea button {
+      width: auto;
+      padding: 12px 20px;
+      margin: 0;
+    }
+
+    .turn-indicator {
+      text-align: center;
+      padding: 12px;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    /* === PUBLIC GAMES PANEL === */
+    #publicPanel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    .public-panel-content {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .public-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .public-panel-header h2 {
+      color: #667eea;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      width: auto;
+      padding: 0;
+      color: #999;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      color: #333;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #publicList {
+      margin: 20px 0;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 480px) {
+      .card {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .welcome-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .game-card-icon {
+        font-size: 35px;
+      }
+
+      .code {
+        font-size: 20px;
+      }
+
+      #turnArea {
+        flex-direction: column;
+      }
+
+      #turnArea button {
+        width: 100%;
+      }
+    }
+
+    .lang-switcher {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 5px;
+    }
+
+    .lang-switcher button {
+      width: 40px;
+      padding: 8px;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .lang-switcher button.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .lang-switcher button.inactive {
+      background: #ddd;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-<div class="app">
-  <div class="lang">
-    <button id="lang-fr" onclick="setLang('fr')">FR</button>
-    <button id="lang-en" onclick="setLang('en')">EN</button>
-    <button id="lang-he" onclick="setLang('he')">עב</button>
+  <!-- SÉLECTEUR LANGUE -->
+  <div class="lang-switcher">
+    <button class="active" onclick="setLang('fr')">FR</button>
+    <button class="inactive" onclick="setLang('en')">EN</button>
   </div>
 
-  <h1>🕵️ <span data-t="title"></span></h1>
-  <div class="error" id="error"></div>
-
-  <!-- ACCUEIL -->
-  <div id="home" class="card">
-    <input id="name" maxlength="16" data-p="yourName">
-    
-    <!-- 3 CARRÉS COLORÉS -->
-    <div class="color-squares">
-      <div class="square square-blue" onclick="quickGame()">
-        <div class="square-icon">⚡</div>
-        <div class="square-text" data-t="quickGame"></div>
+  <div class="container">
+    <!-- ACCUEIL -->
+    <div id="welcome" class="card">
+      <h1>👑 Impostor Game</h1>
+      
+      <div style="margin-bottom: 20px;">
+        <input type="text" id="name" placeholder="Ton pseudo" maxlength="20">
       </div>
-      <div class="square square-red" onclick="createRoom()">
-        <div class="square-icon">🎮</div>
-        <div class="square-text" data-t="create"></div>
-      </div>
-      <div class="square square-green" onclick="showJoinPanel()">
-        <div class="square-icon">🔑</div>
-        <div class="square-text" data-t="join"></div>
-      </div>
-    </div>
 
-    <!-- PANEL REJOINDRE (caché par défaut) -->
-    <div id="joinPanel" class="hidden">
-      <input id="codeInput" maxlength="4" data-p="code" style="text-transform:uppercase">
-      <button class="secondary" onclick="joinRoom()" data-t="join"></button>
-      <button class="danger" onclick="hideJoinPanel()" data-t="cancel"></button>
-    </div>
-  </div>
+      <div id="errorMsg" class="error hidden"></div>
 
-  <!-- LOBBY -->
-  <div id="lobby" class="card hidden">
-    <div class="code" id="roomCode"></div>
-    <p data-t="players"></p>
-    <ul class="players" id="playersList"></ul>
+      <div class="welcome-grid">
+        <div class="game-card" onclick="quickGame()">
+          <div class="game-card-icon">⚡</div>
+          <div class="game-card-title" id="txt-quickGame">Jeu Rapide</div>
+          <div class="game-card-desc" id="txt-quickGameDesc">Partie publique</div>
+        </div>
 
-    <div id="catBox">
-      <p data-t="category"></p>
-      <select id="category" onchange="setCategory()"></select>
-      <button class="settings" onclick="toggleSettings()">⚙️ <span data-t="settings"></span></button>
-      <div id="settingsPanel" class="settings-panel hidden">
-        <div class="switch-row">
-          <span data-t="showRole"></span>
-          <label class="switch">
-            <input type="checkbox" id="showRoleToggle" onchange="setSetting()">
-            <span class="slider"></span>
-          </label>
+        <div class="game-card" onclick="showCreateForm()">
+          <div class="game-card-icon">➕</div>
+          <div class="game-card-title" id="txt-create">Créer</div>
+          <div class="game-card-desc" id="txt-createDesc">Partie privée</div>
+        </div>
+
+        <div class="game-card full" onclick="showPublicGames()">
+          <div class="game-card-icon">🌍</div>
+          <div class="game-card-title" id="txt-publicGames">Parties Publiques</div>
+          <div class="game-card-desc" id="txt-joinDesc">Rejoindre une partie</div>
         </div>
       </div>
-    </div>
 
-    <p id="settingState" class="setting-state hidden"></p>
-    <button id="startBtn" onclick="startGame()" data-t="start"></button>
-    <p id="waitHost" class="hidden" data-t="waitHost"></p>
-    <button class="danger" onclick="leave()" data-t="leave"></button>
-  </div>
-
-  <!-- INDICES -->
-  <div id="clues" class="card hidden">
-    <div class="scene">
-      <div class="flip-card" id="flipCard" onclick="flipCard()">
-        <div class="face back"><span>❓</span></div>
-        <div class="face front">
-          <div class="w" id="myWord"></div>
-          <div class="r hidden" id="myRole"></div>
+      <!-- FORMULAIRE CRÉER -->
+      <div id="createForm" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
+        <h3 id="txt-createTitle">Créer une Partie</h3>
+        <div>
+          <label id="txt-gameCategory">Catégorie :</label>
+          <select id="categorySelect">
+            <option value="random">🎲 Aléatoire</option>
+            <option value="movies">🎬 Films</option>
+            <option value="sports">⚽ Sports</option>
+            <option value="animals">🐻 Animaux</option>
+            <option value="food">🍕 Nourriture</option>
+            <option value="countries">🌎 Pays</option>
+          </select>
         </div>
+        <button onclick="createRoom()" id="txt-createBtn">Créer</button>
+        <button class="secondary" onclick="hidCreateForm()" style="width: 100%;">Annuler</button>
       </div>
     </div>
-    <p class="tap-hint" data-t="tapCard"></p>
-    <p id="turnInfo"></p>
-    <div id="clueBox">
-      <input id="clueInput" maxlength="24" data-p="clue">
-      <button onclick="sendClue()" data-t="send"></button>
+
+    <!-- LOBBY -->
+    <div id="lobby" class="card hidden">
+      <h1 id="txt-lobby">Lobby</h1>
+      <div style="text-align: center; margin-bottom: 10px;">
+        <p id="txt-codeLabel" style="color: #999; margin: 0 0 5px 0; font-size: 12px;">Code de la partie :</p>
+        <div class="code" id="roomCode" onclick="copyCode()"></div>
+        <p style="font-size: 11px; color: #ccc; margin-top: 5px;" id="txt-copiedCode">Clique pour copier</p>
+      </div>
+
+      <h3 id="txt-players">Joueurs :</h3>
+      <div id="playersList"></div>
+
+      <!-- PARAMÈTRES PUBLIC/PRIVÉ -->
+      <div class="settings-toggle">
+        <label id="txt-public" style="margin: 0; font-weight: bold;">🌍 Public</label>
+        <div class="toggle-switch" id="publicToggle" onclick="togglePublic()">
+          <div class="toggle-switch-ball"></div>
+        </div>
+      </div>
+
+      <div id="waitMsg" class="wait-msg" id="txt-waitMsg">En attente de l'hôte (3 joueurs minimum)...</div>
+
+      <button id="startBtn" class="hidden" onclick="startGame()" id="txt-startBtn">Lancer la partie</button>
+      <button class="secondary" onclick="leaveRoom()" style="width: 100%;" id="txt-leaveBtn">Quitter</button>
     </div>
-    <div id="cluesList"></div>
+
+    <!-- JEU -->
+    <div id="game" class="card hidden">
+      <h1 style="margin-bottom: 15px;">👑 Impostor Game</h1>
+      
+      <div>
+        <p id="txt-yourWord" style="color: #999; margin: 0 0 8px 0; font-size: 12px;">Ton mot :</p>
+        <div class="word-box" id="myWord">?</div>
+      </div>
+
+      <div id="turnIndicator" class="turn-indicator hidden"></div>
+
+      <h3 id="txt-gamePlayers">Joueurs :</h3>
+      <div id="gamePlayers"></div>
+
+      <h3 id="txt-clues">Mots dits :</h3>
+      <div id="clues"></div>
+
+      <div id="turnArea" class="hidden">
+        <input id="clueInput" placeholder="Dis un mot en rapport avec ton mot" maxlength="30">
+        <button onclick="sendClue()" id="txt-sendBtn">Envoyer</button>
+      </div>
+
+      <div id="voteArea" class="hidden" style="margin-top: 20px;">
+        <h3 id="txt-vote">Voter pour l'Imposteur :</h3>
+        <div id="voteOptions"></div>
+      </div>
+
+      <div id="gameResult" class="hidden" style="text-align: center; padding: 20px; background: rgba(0,0,0,.05); border-radius: 8px; margin-top: 20px;">
+        <p id="resultText" style="font-size: 18px; font-weight: bold; color: #667eea;"></p>
+      </div>
+
+      <button class="secondary" onclick="leaveRoom()" style="width: 100%; margin-top: 15px;" id="txt-leaveGameBtn">Quitter</button>
+    </div>
   </div>
 
-  <!-- VOTE -->
-  <div id="voting" class="card hidden">
-    <p data-t="voteTitle"></p>
-    <div class="timer" id="timer"></div>
-    <div id="voteButtons"></div>
-    <div id="cluesList2"></div>
+  <!-- PANEL PARTIES PUBLIQUES -->
+  <div id="publicPanel">
+    <div class="public-panel-content">
+      <div class="public-panel-header">
+        <h2 id="txt-publicTitle">Parties Publiques</h2>
+        <button class="close-btn" onclick="hidePublicGames()">✕</button>
+      </div>
+      <div id="publicList"></div>
+    </div>
   </div>
 
-  <!-- FIN -->
-  <div id="end" class="card hidden">
-    <div id="result"></div>
-    <button id="againBtn" onclick="again()" data-t="again"></button>
-    <p id="waitHost2" class="hidden" data-t="waitHost"></p>
-    <button class="danger" onclick="leave()" data-t="leave"></button>
-  </div>
-</div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // === TRADUCTIONS ===
+    const T = {
+      fr: {
+        quickGame: "Jeu Rapide",
+        quickGameDesc: "Partie publique",
+        create: "Créer",
+        createDesc: "Partie privée",
+        publicGames: "Parties Publiques",
+        joinDesc: "Rejoindre une partie",
+        createTitle: "Créer une Partie",
+        gameCategory: "Catégorie :",
+        createBtn: "Créer",
+        lobby: "Lobby",
+        codeLabel: "Code de la partie :",
+        copiedCode: "Clique pour copier",
+        players: "Joueurs :",
+        public: "🌍 Public",
+        waitMsg: "En attente de l'hôte (3 joueurs minimum)...",
+        startBtn: "Lancer la partie",
+        leaveBtn: "Quitter",
+        yourWord: "Ton mot :",
+        gamePlayers: "Joueurs :",
+        clues: "Mots dits :",
+        sendBtn: "Envoyer",
+        vote: "Voter pour l'Imposteur :",
+        leaveGameBtn: "Quitter",
+        publicTitle: "Parties Publiques",
+        noPublicGames: "Aucune partie publique disponible",
+        join: "Rejoindre",
+        needName: "Entre ton pseudo d'abord !",
+        copied: "Code copié ! 📋",
+        host: "Hôte",
+        impostor: "🎭 Imposteur",
+        innocent: "😇 Innocent",
+      },
+      en: {
+        quickGame: "Quick Game",
+        quickGameDesc: "Public game",
+        create: "Create",
+        createDesc: "Private game",
+        publicGames: "Public Games",
+        joinDesc: "Join a game",
+        createTitle: "Create a Game",
+        gameCategory: "Category:",
+        createBtn: "Create",
+        lobby: "Lobby",
+        codeLabel: "Game Code:",
+        copiedCode: "Click to copy",
+        players: "Players:",
+        public: "🌍 Public",
+        waitMsg: "Waiting for host (3 players minimum)...",
+        startBtn: "Start Game",
+        leaveBtn: "Leave",
+        yourWord: "Your word:",
+        gamePlayers: "Players:",
+        clues: "Clues:",
+        sendBtn: "Send",
+        vote: "Vote for the Impostor:",
+        leaveGameBtn: "Leave",
+        publicTitle: "Public Games",
+        noPublicGames: "No public games available",
+        join: "Join",
+        needName: "Enter your nickname first!",
+        copied: "Code copied! 📋",
+        host: "Host",
+        impostor: "🎭 Impostor",
+        innocent: "😇 Innocent",
+      }
+    };
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
+    let currentLang = "fr";
+    const socket = io();
+    let myId = null;
+    let isHost = false;
+    let roomCode = null;
+    let gameState = null;
+    let isPublic = false;
 
-const T = {
-  fr: {
-    title: "Imposteur", create: "Créer", join: "Rejoindre", yourName: "Ton prénom", code: "Code de la partie",
-    players: "Joueurs :", category: "Catégorie :", start: "Lancer la partie", waitHost: "En attente de l'hôte...",
-    leave: "Quitter le groupe", send: "Envoyer", voteTitle: "Qui est l'imposteur ?",
-    again: "Rejouer (rester dans le groupe)", yourTurn: "👉 C'est ton tour !", turnOf: "Tour de : ", round: "Tour",
-    secs: "s", tie: "Égalité ! Personne n'est éliminé.", eliminated: "a été éliminé.", wasImp: "Était imposteur : ",
-    yes: "✓ OUI", no: "✗ NON", impWas: "L'imposteur était : ", impWord: "Son mot : ", civWord: "Mot des innocents : ",
-    needName: "Entre ton prénom", needCode: "Entre le code", clue: "Ton mot-indice",
-    settings: "Réglages", showRole: "Afficher le rôle sur la carte", tapCard: "👆 Touche la carte pour la retourner",
-    roleOn: "Rôle affiché sur la carte : OUI", roleOff: "Rôle affiché sur la carte : NON",
-    innocent: "INNOCENT", impostor: "IMPOSTEUR", quickGame: "Jeu Rapide", cancel: "Annuler",
-    cats: { sport: "Sport", celebrite: "Célébrités", film: "Films", anime: "Anime", musique: "Musique", nature: "Nature", nourriture: "Nourriture", animaux: "Animaux" }
-  },
-  en: {
-    title: "Impostor", create: "Create", join: "Join", yourName: "Your name", code: "Game code",
-    players: "Players:", category: "Category:", start: "Start game", waitHost: "Waiting for the host...",
-    leave: "Leave group", send: "Send", voteTitle: "Who is the impostor?",
-    again: "Play again (stay in group)", yourTurn: "👉 It's your turn!", turnOf: "Turn of: ", round: "Round",
-    secs: "s", tie: "Tie! Nobody is eliminated.", eliminated: "was eliminated.", wasImp: "Was impostor: ",
-    yes: "✓ YES", no: "✗ NO", impWas: "The impostor was: ", impWord: "Their word: ", civWord: "Innocents' word: ",
-    needName: "Enter your name", needCode: "Enter the code", clue: "Your clue word",
-    settings: "Settings", showRole: "Show role on the card", tapCard: "👆 Tap the card to flip it",
-    roleOn: "Role shown on card: YES", roleOff: "Role shown on card: NO",
-    innocent: "INNOCENT", impostor: "IMPOSTOR", quickGame: "Quick Game", cancel: "Cancel",
-    cats: { sport: "Sports", celebrite: "Celebrities", film: "Movies", anime: "Anime", musique: "Music", nature: "Nature", nourriture: "Food", animaux: "Animals" }
-  },
-  he: {
-    title: "מתחזה", create: "צור", join: "הצטרף", yourName: "השם שלך", code: "קוד משחק",
-    players: "שחקנים:", category: "קטגוריה:", start: "התחל משחק", waitHost: "ממתין למארח...",
-    leave: "עזוב קבוצה", send: "שלח", voteTitle: "מי המתחזה?",
-    again: "שחק שוב (הישאר בקבוצה)", yourTurn: "👉 התור שלך!", turnOf: "התור של: ", round: "סיבוב",
-    secs: "ש׳", tie: "תיקו! אף אחד לא הודח.", eliminated: "הודח.", wasImp: "היה מתחזה: ",
-    yes: "✓ כן", no: "✗ לא", impWas: "המתחזה היה: ", impWord: "המילה שלו: ", civWord: "המילה של התמימים: ",
-    needName: "הכנס שם", needCode: "הכנס קוד", clue: "מילת רמז",
-    settings: "הגדרות", showRole: "הצג תפקיד על הקלף", tapCard: "👆 לחץ על הקלף כדי להפוך אותו",
-    roleOn: "תפקיד מוצג על הקלף: כן", roleOff: "תפקיד מוצג על הקלף: לא",
-    innocent: "תמים", impostor: "מתחזה", quickGame: "משחק מהיר", cancel: "בטל",
-    cats: { sport: "ספורט", celebrite: "מפורסמים", film: "סרטים", anime: "אנימה", musique: "מוזיקה", nature: "טבע", nourriture: "אוכל", animaux: "חיות" }
-  }
-};
-
-let lang = localStorage.getItem("lang") || "fr";
-let host = null;
-let state = null;
-let myVote = null;
-let timerInt = null;
-let showRole = false;
-let lastRoundKey = null;
-
-function t(k) { return T[lang][k] || k; }
-
-function setLang(l) {
-  lang = l;
-  localStorage.setItem("lang", l);
-  document.documentElement.lang = l;
-  document.body.dir = l === "he" ? "rtl" : "ltr";
-  document.querySelectorAll("[data-t]").forEach(e => e.textContent = t(e.dataset.t));
-  document.querySelectorAll("[data-p]").forEach(e => e.placeholder = t(e.dataset.p));
-  ["fr", "en", "he"].forEach(x => document.getElementById("lang-" + x).classList.toggle("active", x === l));
-  const sel = document.getElementById("category");
-  const cur = sel.value || "sport";
-  sel.innerHTML = "";
-  Object.keys(T[l].cats).forEach(k => {
-    const o = document.createElement("option");
-    o.value = k; o.textContent = T[l].cats[k];
-    sel.appendChild(o);
-  });
-  sel.value = cur;
-  updateSettingState();
-  if (state) renderGame(state);
-}
-
-function show(id) {
-  ["home", "lobby", "clues", "voting", "end"].forEach(x => document.getElementById(x).classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
-}
-
-function showError(msg) {
-  const e = document.getElementById("error");
-  e.textContent = msg;
-  setTimeout(() => { e.textContent = ""; }, 3000);
-}
-
-function quickGame() {
-  const name = document.getElementById("name").value.trim();
-  if (!name) return showError(t("needName"));
-  socket.emit("createRoom", { name });
-}
-
-function createRoom() {
-  const name = document.getElementById("name").value.trim();
-  if (!name) return showError(t("needName"));
-  socket.emit("createRoom", { name });
-}
-
-function showJoinPanel() {
-  document.getElementById("joinPanel").classList.remove("hidden");
-}
-
-function hideJoinPanel() {
-  document.getElementById("joinPanel").classList.add("hidden");
-}
-
-function joinRoom() {
-  const name = document.getElementById("name").value.trim();
-  const code = document.getElementById("codeInput").value.trim().toUpperCase();
-  if (!name) return showError(t("needName"));
-  if (!code) return showError(t("needCode"));
-  socket.emit("joinRoom", { name, code });
-}
-
-function setCategory() { socket.emit("setCategory", document.getElementById("category").value); }
-function startGame() { socket.emit("startGame"); }
-function again() { socket.emit("again"); }
-
-function toggleSettings() {
-  document.getElementById("settingsPanel").classList.toggle("hidden");
-}
-function setSetting() {
-  socket.emit("setSettings", { showRole: document.getElementById("showRoleToggle").checked });
-}
-function updateSettingState() {
-  const el = document.getElementById("settingState");
-  el.textContent = showRole ? t("roleOn") : t("roleOff");
-}
-
-function flipCard() {
-  document.getElementById("flipCard").classList.toggle("flipped");
-}
-
-function leave() {
-  socket.emit("leave");
-  if (timerInt) clearInterval(timerInt);
-  show("home");
-}
-
-function sendClue() {
-  const input = document.getElementById("clueInput");
-  const v = input.value.trim();
-  if (!v) return;
-  socket.emit("clue", v);
-  input.value = "";
-}
-
-document.getElementById("clueInput").addEventListener("keydown", e => { if (e.key === "Enter") sendClue(); });
-
-function vote(id) {
-  myVote = id;
-  socket.emit("vote", id);
-  updateVoteButtons();
-}
-
-function updateVoteButtons() {
-  document.querySelectorAll(".vote-btn").forEach(b => {
-    b.classList.toggle("voted", b.dataset.playerId === myVote);
-  });
-}
-
-function esc(s) {
-  const d = document.createElement("div");
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function cluesHtml(clues) {
-  return clues.map(c => '<div class="clue"><b>' + esc(c.name) + '</b> : ' + esc(c.clue) + '</div>').join("");
-}
-
-function renderGame(d) {
-  if (d.phase === "clues") {
-    show("clues");
-
-    const key = d.word + "|" + d.role;
-    if (key !== lastRoundKey && d.clues.length === 0) {
-      document.getElementById("flipCard").classList.remove("flipped");
-      lastRoundKey = key;
-    }
-    document.getElementById("myWord").textContent = d.word;
-    const roleEl = document.getElementById("myRole");
-    if (showRole && d.role) {
-      roleEl.textContent = d.role === "impostor" ? t("impostor") : t("innocent");
-      roleEl.className = "r " + (d.role === "impostor" ? "impostor" : "innocent");
-    } else {
-      roleEl.className = "r hidden";
+    // === FONCTIONS TRADUCTION ===
+    function t(key) {
+      return T[currentLang]?.[key] || key;
     }
 
-    const myTurn = d.turn === socket.id;
-    const current = d.players.find(p => p.id === d.turn);
-    document.getElementById("turnInfo").textContent = myTurn
-      ? t("yourTurn")
-      : t("turnOf") + (current ? current.name : "") + "  (" + t("round") + " " + d.round + "/2)";
-    document.getElementById("clueBox").classList.toggle("hidden", !myTurn);
-    document.getElementById("cluesList").innerHTML = cluesHtml(d.clues);
-  }
-  if (d.phase === "voting") {
-    show("voting");
-    document.getElementById("voteButtons").innerHTML = d.players
-      .filter(p => p.id !== socket.id)
-      .map(p => '<button class="vote-btn" data-player-id="' + p.id + '" onclick="vote(\'' + p.id + '\')">' + esc(p.name) + '</button>')
-      .join("");
-    document.getElementById("cluesList2").innerHTML = cluesHtml(d.clues);
-    updateVoteButtons();
-    startTimer();
-  }
-}
+    function updateUI() {
+      document.getElementById("txt-quickGame").innerText = t("quickGame");
+      document.getElementById("txt-quickGameDesc").innerText = t("quickGameDesc");
+      document.getElementById("txt-create").innerText = t("create");
+      document.getElementById("txt-createDesc").innerText = t("createDesc");
+      document.getElementById("txt-publicGames").innerText = t("publicGames");
+      document.getElementById("txt-joinDesc").innerText = t("joinDesc");
+      document.getElementById("txt-createTitle").innerText = t("createTitle");
+      document.getElementById("txt-gameCategory").innerText = t("gameCategory");
+      document.getElementById("txt-createBtn").innerText = t("createBtn");
+      document.getElementById("txt-lobby").innerText = t("lobby");
+      document.getElementById("txt-codeLabel").innerText = t("codeLabel");
+      document.getElementById("txt-copiedCode").innerText = t("copiedCode");
+      document.getElementById("txt-players").innerText = t("players");
+      document.getElementById("txt-public").innerText = t("public");
+      document.getElementById("txt-waitMsg").innerText = t("waitMsg");
+      document.getElementById("txt-startBtn").innerText = t("startBtn");
+      document.getElementById("txt-leaveBtn").innerText = t("leaveBtn");
+      document.getElementById("txt-yourWord").innerText = t("yourWord");
+      document.getElementById("txt-gamePlayers").innerText = t("gamePlayers");
+      document.getElementById("txt-clues").innerText = t("clues");
+      document.getElementById("txt-sendBtn").innerText = t("sendBtn");
+      document.getElementById("txt-vote").innerText = t("vote");
+      document.getElementById("txt-leaveGameBtn").innerText = t("leaveGameBtn");
+      document.getElementById("txt-publicTitle").innerText = t("publicTitle");
+    }
 
-let timerStarted = false;
-function startTimer() {
-  if (timerStarted) return;
-  timerStarted = true;
-  let left = 15;
-  const el = document.getElementById("timer");
-  el.textContent = left + t("secs");
-  if (timerInt) clearInterval(timerInt);
-  timerInt = setInterval(() => {
-    left--;
-    el.textContent = Math.max(left, 0) + t("secs");
-    if (left <= 0) clearInterval(timerInt);
-  }, 1000);
-}
+    function setLang(lang) {
+      currentLang = lang;
+      updateUI();
+      document.querySelectorAll(".lang-switcher button").forEach(btn => {
+        btn.classList.remove("active", "inactive");
+        btn.classList.add(lang === btn.innerText.toLowerCase() ? "active" : "inactive");
+      });
+    }
 
-socket.on("roomUpdate", (d) => {
-  host = d.host;
-  showRole = !!(d.settings && d.settings.showRole);
-  show("lobby");
-  document.getElementById("roomCode").textContent = d.code;
-  document.getElementById("playersList").innerHTML = d.players
-    .map(p => "<li>" + (p.id === d.host ? "👑 " : "👤 ") + esc(p.name) + "</li>").join("");
-  const isHost = d.host === socket.id;
-  document.getElementById("startBtn").classList.toggle("hidden", !isHost);
-  document.getElementById("catBox").classList.toggle("hidden", !isHost);
-  document.getElementById("waitHost").classList.toggle("hidden", isHost);
-  document.getElementById("category").value = d.selectedCategory;
-  document.getElementById("showRoleToggle").checked = showRole;
-  const st = document.getElementById("settingState");
-  st.classList.toggle("hidden", isHost);
-  updateSettingState();
-});
+    // === UTILITAIRES ===
+    function esc(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
 
-socket.on("gameUpdate", (d) => {
-  if (d.phase === "clues") { timerStarted = false; myVote = null; }
-  state = d;
-  renderGame(d);
-});
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.innerText = msg;
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 4000);
+    }
 
-socket.on("gameEnd", (r) => {
-  if (timerInt) clearInterval(timerInt);
-  timerStarted = false;
-  lastRoundKey = null;
-  show("end");
-  let html;
-  if (r.tie) {
-    html = "<p>" + t("tie") + "</p>";
-  } else {
-    html = "<p><b>" + esc(r.eliminatedName) + "</b> " + t("eliminated") + "</p>" +
-           "<p>" + t("wasImp") + (r.wasImpostor ? t("yes") : t("no")) + "</p>";
-  }
-  html += "<p>" + t("impWas") + "<b>" + esc(r.impostorName) + "</b></p>" +
-          "<p>" + t("impWord") + "<b>" + esc(r.impostorWord) + "</b></p>" +
-          "<p>" + t("civWord") + "<b>" + esc(r.civilWord) + "</b></p>";
-  document.getElementById("result").innerHTML = html;
-  const isHost = host === socket.id;
-  document.getElementById("againBtn").classList.toggle("hidden", !isHost);
-  document.getElementById("waitHost2").classList.toggle("hidden", isHost);
-});
+    function showSuccess(msg) {
+      const el = document.getElementById("errorMsg");
+      el.innerText = msg;
+      el.classList.remove("hidden", "error");
+      el.classList.add("success");
+      setTimeout(() => el.classList.add("hidden"), 3000);
+    }
 
-socket.on("backToLobby", () => { if (timerInt) clearInterval(timerInt); timerStarted = false; });
-socket.on("errorMsg", (m) => showError(m));
+    function copyCode() {
+      navigator.clipboard.writeText(roomCode);
+      showSuccess(t("copied"));
+    }
 
-setLang(lang);
-show("home");
-</script>
+    // === ACCUEIL ===
+    function showCreateForm() {
+      document.getElementById("createForm").classList.remove("hidden");
+    }
+
+    function hidCreateForm() {
+      document.getElementById("createForm").classList.add("hidden");
+    }
+
+    function quickGame() {
+      const name = document.getElementById("name").value.trim();
+      if (!name) return showError(t("needName"));
+      socket.emit("createRoom", { name, quick: true });
+    }
+
+    function createRoom() {
+      const name = document.getElementById("name").value.trim();
+      const category = document.getElementById("categorySelect").value;
+      if (!name) return showError(t("needName"));
+      socket.emit("createRoom", { name, quick: false, category });
+      hidCreateForm();
+    }
+
+    function showPublicGames() {
+      document.getElementById("publicPanel").style.display = "flex";
+      socket.emit("getPublicRooms");
+    }
+
+    function hidePublicGames() {
+      document.getElementById("publicPanel").style.display = "none";
+    }
+
+    function joinPublicRoom(code) {
+      const name = document.getElementById("name").value.trim();
+      if (!name) return showError(t("needName"));
+      socket.emit("joinRoom", { name, code });
+      hidePublicGames();
+    }
+
+    // === LOBBY ===
+    function togglePublic() {
+      const toggle = document.getElementById("publicToggle");
+      isPublic = !isPublic;
+      toggle.classList.toggle("active");
+      socket.emit("togglePublic", isPublic);
+    }
+
+    function leaveRoom() {
+      socket.emit("leaveRoom");
+      document.getElementById("welcome").classList.remove("hidden");
+      document.getElementById("lobby").classList.add("hidden");
+      document.getElementById("game").classList.add("hidden");
+    }
+
+    function startGame() {
+      socket.emit("startGame");
+    }
+
+    // === JEU ===
+    function sendClue() {
+      const input = document.getElementById("clueInput");
+      const clue = input.value.trim();
+      if (!clue) return;
+      socket.emit("sendClue", clue);
+      input.value = "";
+    }
+
+    // === SOCKET EVENTS ===
+    socket.on("connect", () => {
+      myId = socket.id;
+    });
+
+    socket.on("roomUpdate", (room) => {
+      roomCode = room.code;
+      isHost = room.host === myId;
+      isPublic = room.isPublic || false;
+
+      document.getElementById("welcome").classList.add("hidden");
+      document.getElementById("lobby").classList.remove("hidden");
+      document.getElementById("game").classList.add("hidden");
+
+      document.getElementById("roomCode").innerText = room.code;
+      document.getElementById("playersList").innerHTML = room.players.map(p => `
+        <div class="player-item">
+          <span class="player-name">${esc(p.name)} ${p.id === room.host ? "👑" : ""}</span>
+        </div>
+      `).join("");
+
+      const startBtn = document.getElementById("startBtn");
+      const waitMsg = document.getElementById("waitMsg");
+      
+      if (isHost && room.players.length >= 3) {
+        startBtn.classList.remove("hidden");
+        waitMsg.classList.add("hidden");
+      } else {
+        startBtn.classList.add("hidden");
+        waitMsg.classList.remove("hidden");
+      }
+
+      // Mettre à jour le toggle
+      const toggle = document.getElementById("publicToggle");
+      if (isPublic) {
+        toggle.classList.add("active");
+      } else {
+        toggle.classList.remove("active");
+      }
+    });
+
+    socket.on("gameStart", (gameData) => {
+      gameState = gameData;
+      document.getElementById("lobby").classList.add("hidden");
+      document.getElementById("game").classList.remove("hidden");
+
+      document.getElementById("myWord").innerText = gameData.myWord;
+      updateGamePlayers(gameData);
+    });
+
+    socket.on("clueAdded", (data) => {
+      updateGamePlayers(data.game);
+      document.getElementById("clues").innerHTML = data.game.clues.map((c, i) => `
+        <div class="clue-item ${c.isImpostor ? "clue-impostor" : ""}">
+          <span class="clue-player">${esc(c.playerName)}</span>
+          <span class="clue-word">${esc(c.clue)}</span>
+        </div>
+      `).join("");
+    });
+
+    socket.on("turnUpdate", (data) => {
+      gameState = data.game;
+      updateGamePlayers(data.game);
+
+      if (data.game.currentPlayer === myId) {
+        document.getElementById("turnArea").classList.remove("hidden");
+        document.getElementById("clueInput").focus();
+      } else {
+        document.getElementById("turnArea").classList.add("hidden");
+      }
+
+      document.getElementById("turnIndicator").innerText = `🎤 ${esc(data.currentPlayerName)} parle...`;
+      document.getElementById("turnIndicator").classList.remove("hidden");
+    });
+
+    socket.on("votePhase", (data) => {
+      gameState = data.game;
+      document.getElementById("clues").classList.add("hidden");
+      document.getElementById("turnArea").classList.add("hidden");
+      document.getElementById("turnIndicator").classList.add("hidden");
+      document.getElementById("voteArea").classList.remove("hidden");
+
+      document.getElementById("voteOptions").innerHTML = data.game.players.map(p => `
+        <button class="secondary" onclick="vote('${p.id}')" style="width: 100%;">Vote pour ${esc(p.name)}</button>
+      `).join("");
+    });
+
+    socket.on("gameResult", (data) => {
+      document.getElementById("voteArea").classList.add("hidden");
+      document.getElementById("gameResult").classList.remove("hidden");
+      
+      const resultText = document.getElementById("resultText");
+      if (data.impostor === myId) {
+        resultText.innerText = "🎭 Tu es l'Imposteur ! Tu as remporté !";
+      } else if (data.innocentsWon) {
+        resultText.innerText = "😇 Les Innocents ont remporté !";
+      } else {
+        resultText.innerText = "🎭 L'Imposteur a été éliminé !";
+      }
+    });
+
+    socket.on("updatePublicRooms", (rooms) => {
+      const list = document.getElementById("publicList");
+      if (!rooms.length) {
+        list.innerHTML = `<p style='text-align:center; color:#aaa;'>${t("noPublicGames")}</p>`;
+        return;
+      }
+      list.innerHTML = rooms.map(r => `
+        <div style="background: rgba(102,126,234,.1); padding: 12px; border-radius: 8px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <p style="margin: 0; font-weight: bold;">👑 ${esc(r.hostName)}</p>
+            <p style="margin: 0; font-size: 12px; color: #999;">${r.playerCount} ${t("players")} • ${r.selectedCategory}</p>
+          </div>
+          <button class="secondary" onclick="joinPublicRoom('${r.code}')" style="padding: 8px 12px; font-size: 12px;">${t("join")}</button>
+        </div>
+      `).join("");
+    });
+
+    socket.on("errorMsg", (msg) => {
+      showError(msg);
+    });
+
+    function vote(playerId) {
+      socket.emit("vote", playerId);
+    }
+
+    function updateGamePlayers(game) {
+      document.getElementById("gamePlayers").innerHTML = game.players.map(p => `
+        <div class="player-item">
+          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
+        </div>
+      `).join("");
+    }
+
+    // Initialiser l'UI au chargement
+    setLang("fr");
+  </script>
 </body>
 </html>
