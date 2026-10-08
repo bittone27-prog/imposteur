@@ -65,6 +65,7 @@
       border-radius: 8px;
       font-size: 14px;
       transition: border-color 0.3s;
+      box-sizing: border-box;
     }
 
     input:focus, select:focus {
@@ -345,6 +346,29 @@
       color: #667eea;
     }
 
+    #voteArea {
+      margin-top: 20px;
+    }
+
+    #voteArea button {
+      margin: 8px 0;
+    }
+
+    .game-result {
+      text-align: center;
+      padding: 20px;
+      background: rgba(0,0,0,.05);
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .game-result p {
+      font-size: 18px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 0;
+    }
+
     /* === PUBLIC GAMES PANEL === */
     #publicPanel {
       position: fixed;
@@ -445,6 +469,7 @@
       right: 20px;
       display: flex;
       gap: 5px;
+      z-index: 100;
     }
 
     .lang-switcher button {
@@ -518,7 +543,7 @@
           </select>
         </div>
         <button onclick="createRoom()" id="txt-createBtn">Créer</button>
-        <button class="secondary" onclick="hidCreateForm()" style="width: 100%;">Annuler</button>
+        <button class="secondary" onclick="hideCreateForm()" style="width: 100%;">Annuler</button>
       </div>
     </div>
 
@@ -570,13 +595,13 @@
         <button onclick="sendClue()" id="txt-sendBtn">Envoyer</button>
       </div>
 
-      <div id="voteArea" class="hidden" style="margin-top: 20px;">
+      <div id="voteArea" class="hidden">
         <h3 id="txt-vote">Voter pour l'Imposteur :</h3>
         <div id="voteOptions"></div>
       </div>
 
-      <div id="gameResult" class="hidden" style="text-align: center; padding: 20px; background: rgba(0,0,0,.05); border-radius: 8px; margin-top: 20px;">
-        <p id="resultText" style="font-size: 18px; font-weight: bold; color: #667eea;"></p>
+      <div id="gameResult" class="game-result hidden">
+        <p id="resultText"></p>
       </div>
 
       <button class="secondary" onclick="leaveRoom()" style="width: 100%; margin-top: 15px;" id="txt-leaveGameBtn">Quitter</button>
@@ -611,7 +636,7 @@
         lobby: "Lobby",
         codeLabel: "Code de la partie :",
         copiedCode: "Clique pour copier",
-        players: "Joueurs :",
+        players: "Joueurs",
         public: "🌍 Public",
         waitMsg: "En attente de l'hôte (3 joueurs minimum)...",
         startBtn: "Lancer la partie",
@@ -628,8 +653,9 @@
         needName: "Entre ton pseudo d'abord !",
         copied: "Code copié ! 📋",
         host: "Hôte",
-        impostor: "🎭 Imposteur",
-        innocent: "😇 Innocent",
+        impostor: "🎭 IMPOSTEUR - Tu as remporté !",
+        innocent: "😇 Les Innocents ont remporté !",
+        impostorEliminated: "🎭 L'Imposteur a été éliminé !"
       },
       en: {
         quickGame: "Quick Game",
@@ -644,7 +670,7 @@
         lobby: "Lobby",
         codeLabel: "Game Code:",
         copiedCode: "Click to copy",
-        players: "Players:",
+        players: "Players",
         public: "🌍 Public",
         waitMsg: "Waiting for host (3 players minimum)...",
         startBtn: "Start Game",
@@ -661,8 +687,9 @@
         needName: "Enter your nickname first!",
         copied: "Code copied! 📋",
         host: "Host",
-        impostor: "🎭 Impostor",
-        innocent: "😇 Innocent",
+        impostor: "🎭 IMPOSTOR - You won!",
+        innocent: "😇 Innocents won!",
+        impostorEliminated: "🎭 Impostor was eliminated!"
       }
     };
 
@@ -673,6 +700,7 @@
     let roomCode = null;
     let gameState = null;
     let isPublic = false;
+    let myWord = null;
 
     // === FONCTIONS TRADUCTION ===
     function t(key) {
@@ -725,7 +753,8 @@
     function showError(msg) {
       const el = document.getElementById("errorMsg");
       el.innerText = msg;
-      el.classList.remove("hidden");
+      el.classList.remove("hidden", "success");
+      el.classList.add("error");
       setTimeout(() => el.classList.add("hidden"), 4000);
     }
 
@@ -747,7 +776,7 @@
       document.getElementById("createForm").classList.remove("hidden");
     }
 
-    function hidCreateForm() {
+    function hideCreateForm() {
       document.getElementById("createForm").classList.add("hidden");
     }
 
@@ -762,7 +791,7 @@
       const category = document.getElementById("categorySelect").value;
       if (!name) return showError(t("needName"));
       socket.emit("createRoom", { name, quick: false, category });
-      hidCreateForm();
+      hideCreateForm();
     }
 
     function showPublicGames() {
@@ -791,6 +820,10 @@
 
     function leaveRoom() {
       socket.emit("leaveRoom");
+      showWelcome();
+    }
+
+    function showWelcome() {
       document.getElementById("welcome").classList.remove("hidden");
       document.getElementById("lobby").classList.add("hidden");
       document.getElementById("game").classList.add("hidden");
@@ -809,6 +842,22 @@
       input.value = "";
     }
 
+    function vote(playerId) {
+      socket.emit("vote", playerId);
+    }
+
+    function playAgain() {
+      socket.emit("backToLobby");
+    }
+
+    function updateGamePlayers(game) {
+      document.getElementById("gamePlayers").innerHTML = game.players.map(p => `
+        <div class="player-item">
+          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
+        </div>
+      `).join("");
+    }
+
     // === SOCKET EVENTS ===
     socket.on("connect", () => {
       myId = socket.id;
@@ -822,6 +871,7 @@
       document.getElementById("welcome").classList.add("hidden");
       document.getElementById("lobby").classList.remove("hidden");
       document.getElementById("game").classList.add("hidden");
+      document.getElementById("gameResult").classList.add("hidden");
 
       document.getElementById("roomCode").innerText = room.code;
       document.getElementById("playersList").innerHTML = room.players.map(p => `
@@ -852,14 +902,21 @@
 
     socket.on("gameStart", (gameData) => {
       gameState = gameData;
+      myWord = gameData.myWord;
+      
       document.getElementById("lobby").classList.add("hidden");
       document.getElementById("game").classList.remove("hidden");
+      document.getElementById("gameResult").classList.add("hidden");
+      document.getElementById("voteArea").classList.add("hidden");
+      document.getElementById("turnArea").classList.add("hidden");
 
       document.getElementById("myWord").innerText = gameData.myWord;
-      updateGamePlayers(gameData);
+      document.getElementById("clues").innerHTML = "";
+      updateGamePlayers(gameData.game);
     });
 
     socket.on("clueAdded", (data) => {
+      gameState = data.game;
       updateGamePlayers(data.game);
       document.getElementById("clues").innerHTML = data.game.clues.map((c, i) => `
         <div class="clue-item ${c.isImpostor ? "clue-impostor" : ""}">
@@ -876,17 +933,17 @@
       if (data.game.currentPlayer === myId) {
         document.getElementById("turnArea").classList.remove("hidden");
         document.getElementById("clueInput").focus();
+        document.getElementById("turnIndicator").innerText = `🎤 ${t("yourWord")}`;
       } else {
         document.getElementById("turnArea").classList.add("hidden");
+        document.getElementById("turnIndicator").innerText = `🎤 ${esc(data.currentPlayerName)} parle...`;
       }
 
-      document.getElementById("turnIndicator").innerText = `🎤 ${esc(data.currentPlayerName)} parle...`;
       document.getElementById("turnIndicator").classList.remove("hidden");
     });
 
     socket.on("votePhase", (data) => {
       gameState = data.game;
-      document.getElementById("clues").classList.add("hidden");
       document.getElementById("turnArea").classList.add("hidden");
       document.getElementById("turnIndicator").classList.add("hidden");
       document.getElementById("voteArea").classList.remove("hidden");
@@ -902,11 +959,11 @@
       
       const resultText = document.getElementById("resultText");
       if (data.impostor === myId) {
-        resultText.innerText = "🎭 Tu es l'Imposteur ! Tu as remporté !";
+        resultText.innerText = t("impostor");
       } else if (data.innocentsWon) {
-        resultText.innerText = "😇 Les Innocents ont remporté !";
+        resultText.innerText = t("innocent");
       } else {
-        resultText.innerText = "🎭 L'Imposteur a été éliminé !";
+        resultText.innerText = t("impostorEliminated");
       }
     });
 
@@ -930,18 +987,6 @@
     socket.on("errorMsg", (msg) => {
       showError(msg);
     });
-
-    function vote(playerId) {
-      socket.emit("vote", playerId);
-    }
-
-    function updateGamePlayers(game) {
-      document.getElementById("gamePlayers").innerHTML = game.players.map(p => `
-        <div class="player-item">
-          <span class="player-name">${esc(p.name)} ${p.eliminated ? "❌" : "✓"}</span>
-        </div>
-      `).join("");
-    }
 
     // Initialiser l'UI au chargement
     setLang("fr");
